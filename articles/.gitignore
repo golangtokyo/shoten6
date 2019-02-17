@@ -1,0 +1,17 @@
+*.html
+!_cover.html
+*.txt
+*.xml
+*.tex
+
+*-pdf/
+C89-*/
+webroot/
+
+*.pdf
+*.epub
+
+*.css
+
+prh.yml
+
