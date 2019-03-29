@@ -2,12 +2,12 @@
 
 == はじめに
 
-こんにちは。バックエンドエンジニアをしているpo3rinです。この章ではGoによる画像処理&画像解析の方法を紹介します。最初は入門から始まり、中盤からは様々な画像処理のTipsを紹介します。終盤では更に突っ込んでOpenCVを使った顔認識や輪郭抽出などの方法を紹介します。初めての方でもこの章を読み終える頃には、Goでエレガントに画像を扱えるようになっていることでしょう。ソースコードは全て私のGitHubリポジトリ@<fn>{repo}に置いてあるので参考にどうぞ。
+初めましてpo3rinです。業務ではGo言語をメインに使って開発しています。この章ではGoによる画像処理&画像解析の方法を紹介します。最初は入門から始まり、中盤からは様々な画像処理のTipsを紹介します。終盤では更に突っ込んでOpenCVを使った顔認識や輪郭抽出などの方法を紹介します。初めての方でもこの章を読み終える頃には、Goでエレガントに画像を扱えるようになっていることでしょう。ソースコードは全て私のGitHubリポジトリ@<fn>{repo}に置いてあるので参考にどうぞ。
 //footnote[repo][https://github.com/po3rin/go-image-manipulation]
 
 === 今回使う素材画像について
 
-今回、@tottieさんのGopher@<fn>{gopher}くんのイラストの利用許可を頂きました。@<img>{po3rin-tottie-gopher}など素敵なイラストを描いている方です。是非Twitterなどでフォローしてみて下さい。
+今回、@tottieさんのGopher@<fn>{gopher}くんのイラストの利用許可を頂きました。@<img>{po3rin-tottie-gopher}などの素敵なイラストを描いている方です。是非Twitter等で検索してみて下さい。
 //footnote[gopher][Gopherの原作者は Renée French さんです]
 
 //image[po3rin-tottie-gopher][@tottieさんの可愛いGopherくんの画像][scale=0.4]{
@@ -68,7 +68,7 @@ RGBAとは、ディスプレイ画面で色を表現するために用いられ�
 
 ===[/column]
 
-@<code>{image.Image}の実装をみてみましょう。今回使った3つのメソッドを持つインターフェースになっています。
+@<code>{image.Image}の実装を@<list>{image_Image}でみてみましょう。今回使った3つのメソッドを持つインターフェースになっています。先ほど確認したように、それぞれのメソッドは画像の基本的な情報を返します。
 
 //list[image_Image][image.Imageの実装][go]{
 type Image interface {
@@ -78,7 +78,7 @@ type Image interface {
 }
 //}
 
-一つ注意点として、Goではpng,jpeg,gifのイメージフォーマットが標準パッケージでサポートされています。これらを使う際にはパッケージのメソッド等を使わない場合でも@<code>{import _ image/png}のようにブランクインポートで対応するパッケージを読み込んでおかないと実行時にエラーが発生します。理由を探る為に@<code>{image/png/reader.go}をみてみましょう。
+Goではpng,jpeg,gifの画像フォーマットが標準パッケージでサポートされています。1点注意があり、画像フォーマットのパッケージの関数などを使わない場合でも@<code>{import _ image/png}のようにブランクインポートで対応するを読み込んでおかないと実行時にエラーが発生します。理由を探る為に@<code>{image/png/reader.go}をみてみましょう。
 
 //list[image_register][image.RegisterFormatによる画像フォーマット登録][go]{
 func init() {
@@ -86,11 +86,12 @@ func init() {
 }
 //}
 
-@<list>{image_register}のようにinit関数で使える画像フォーマットをパッケージ内のinit関数内で登録しています。その為、init関数を発火させる為にブランクインポートをする必要があります。
+@<list>{image_register}のようにinit関数で使える画像フォーマットをパッケージ内のinit関数@<fn>{init}内で登録しています。その為、init関数を発火させる為にブランクインポートをする必要があります。
+//footnote[init][init関数は特殊な関数で、main関数よりも先に実行されます。主にパッケージの初期化に使われます。]
 
 === 画像のカラーモードを変える
 
-さて、image.Imageの基礎を抑えたところでimageパッケージでよくある実装パターンを紹介します。例として画像をグレースケールに変換する処理をみてみましょう。
+さて、image.Imageの基礎を抑えたところでimageパッケージでよくある実装パターンを1つ紹介します。例として画像をグレースケールに変換する処理をみてみましょう。
 
 //list[grayscale][画像をグレースケールに変換][go]{
 func main() {
@@ -116,7 +117,9 @@ func main() {
 }
 //}
 
-@<list>{grayscale}を実行するとグレイスケールのGopherくん(@<img>{po3rin-gray_gopher}）ができます。
+@<list>{grayscale}の通り、Goで画像加工をする際には、まず目的の画像(dstと呼ぶ)を作成し、元画像(srcと呼ぶ)から1画素ずつ処理してdstにセットするという流れになります。今回においてはsrcから1画素値づつ所得し、その色をグレースケール化してdstにセットしています。濃淡加工やセピア加工などのエフェクト処理においてもこのフローは鉄板なので覚えておきましょう。
+
+@<list>{grayscale}を@<list>{withoutput}のように実行するとグレイスケールのGopherくん(@<img>{po3rin-gray_gopher}）ができます。
 
 //list[withoutput][main.goの実行][]{
 $ go run main.go < gopher.png > gray_gopher.png
@@ -125,20 +128,18 @@ $ go run main.go < gopher.png > gray_gopher.png
 //image[po3rin-gray_gopher][可愛いGopherくんのグレー画像][scale=0.4]{
 //}
 
-先ほどのソースコードの通り、Goで画像加工をする際には、まず目的の画像(dstと呼ぶ)を作成し、元画像(srcと呼ぶ)から1画素ずつ処理してdstにセットするという流れになります。濃淡加工やセピア加工などのエフェクト処理においてもこのフローは鉄板なので覚えておきましょう。
-
 == 線形補間法を実装して画像リサイズの仕組みを学ぼう
 
-今までの知識を使って少し骨のある実装をしてみましょう。@<code>{resize}パッケージを作り、画像を指定倍率でリサイズできる@<code>{Resize}関数を実装します。今回は標準パッケージのみで実装していく事で、Goにおける実装方法だけでなく、画像の拡大縮小の仕組みも学びます。
+今までの知識を使って少し骨のある実装をしてみましょう。画像を指定倍率でリサイズできる@<code>{Resize}関数を提供する@<code>{resize}パッケージを実装します。今回は標準パッケージのみで実装していく事で、Goにおける実装方法だけでなく、画像の拡大縮小の仕組みも学びます。
 
 === 線形補間法(lerp)の概要と実装
 
-単純に画像の拡大縮小を考えると何が起きるのでしょうか。単純に拡大すると元々の色はそのままで風船が膨らむように拡大されます。そうなると拡大後には@<img>{po3rin-resize}のように色の無い隙間ができるはずです。
+何も考えずに画像を拡大することを考えると元々の色の位置関係はそのままで風船が膨らむように拡大されます。そうすると拡大後には@<img>{po3rin-resize}のように色の無い隙間ができます。
 
 //image[po3rin-resize][画像の拡大縮小は隙間が発生する][scale=0.4]{
 //}
 
-その為、この隙間を何かしらの計算アルゴリズムで補間する必要があります。ここで紹介するのが線形補間法です。線形補間法はコンピュータグラフィックスを含む多くの分野で非常によく使われているシンプルな補間の1つで、計算量が非常に少ない事が特徴です。拡大後の画素値は、元画像の位置から最も近い画素(近傍4画素と呼ぶ)からの距離によって計算する方法です。@<img>{po3rin-lerp}は線形補正法の概念図と計算式です。
+その為、この隙間を何かしらの計算アルゴリズムで上手く補間する必要があります。ここで紹介するのが線形補間法です。線形補間法はコンピュータグラフィックスを含む多くの分野で使われている補間の1つで、計算量が非常に少ない事が特徴です。拡大後の画素値は、元画像の位置から最も近い画素(近傍4画素と呼ぶ)からの距離によってその点の画素値を計算する方法です。@<img>{po3rin-lerp}は線形補正法の概念図と計算式です。
 
 //image[po3rin-lerp][線形補正法の概念図と計算式][scale=1]{
 //}
@@ -147,7 +148,7 @@ $ go run main.go < gopher.png > gray_gopher.png
 #@# f\left( x',y'\right) = f\left( x,y\right) \alpha \beta + f\left( x+1,y\right) \left( 1-\alpha\right) \beta + f\left( x,y+1\right) \alpha \left( 1-\beta\right) + f\left( x+1,y+1\right) \left( 1-\alpha\right) \left( 1-\beta\right)
 #@# //}
 
-@<m>{\left( x',y'\right)}の周りの点は先ほど説明した近傍4画素です。今回のケースにおける関数@<m>{f}は拡大縮小後の座標を渡せば補正後の画素値を返す関数です。@<m>{\alpha}と@<m>{\beta}は座標間の距離を表します(座標ごとの重み付けのため)。やはりエンジニアたるもの、コードを書いてこそ理解できるというもの。早速lerpパッケージを作成しましょう。このパッケージは画像に関するコードは排除し、単純にLerpのアルゴリズムを実装したパッケージです。
+@<m>{\left( x',y'\right)}の周りの点は先ほど説明した近傍4画素です。今回のケースにおける関数@<m>{f}は補正後の画素値を返す関数です。@<m>{\alpha}と@<m>{\beta}は座標間の距離を表します(座標ごとの重み付けのため)。早速lerpパッケージを作成しましょう。このパッケージは画像に関するコードは排除し、単純にLerpのアルゴリズムを実装したパッケージです。
 
 //list[resize-lerp][lerpパッケージの実装][go]{
 package lerp
@@ -164,7 +165,7 @@ type Points [4]Point
 // PosDependFunc 関数f
 type PosDependFunc func(x, y int) float64
 
-// Lerp calicurate relp
+// Lerp 線形補間法
 func Lerp(f PosDependFunc, a float64, b float64, ps Points) float64 {
 	n := (1.0-b)*(1.0-a)*f(ps[0].X, ps[0].Y) +
 		a*(1.0-b)*f(ps[1].X, ps[0].Y) +
@@ -178,7 +179,7 @@ func Lerp(f PosDependFunc, a float64, b float64, ps Points) float64 {
 
 === 線形補間を使った画像リサイズ
 
-lerpパッケージを使う為に新しい関数を2つ作成します。1つ目は近傍点の座標と@<m>{\alpha}や@<m>{\beta}などのパラメータを計算する関数。もう一つはRGBAのいずれか1つを抽出する関数@<m>{f}を返す関数です。なぜ2つ目の関数が必要かというと、Lerpは今回RGBAそれぞれの値に対して実行します。つまり。計4回Lerpを行うので関数@<m>{f}を4つ作る必要があります。initGetOneColorFuncは4つの関数@<m>{f}を生成するプロセスを一つにまとめただけです。
+lerpパッケージを使って新しい関数を2つ作成します。1つ目は近傍点の座標と@<m>{\alpha}や@<m>{\beta}などのパラメータを計算する関数。もう一つはRGBAのいずれか1つを抽出する関数@<m>{f}を返す関数です。なぜ2つ目の関数が必要かというと、Lerpは今回RGBAそれぞれの値に対して実行します。つまり関数@<m>{f}を4種類用意する必要があります。initGetOneColorFuncは4つの関数@<m>{f}を生成するプロセスを一つにまとめただけです。
 
 //list[innnerfunc][画像リサイズに使う関数][go]{
 // getLerpParam 1軸に対して、Lerpで使うパラメータと近傍点をdstの座標と拡大縮小比率から所得する関数
@@ -214,7 +215,7 @@ func initGetOneColorFunc(src image.Image, colorName string) lerp.PosDependFunc {
 }
 //}
 
-それではいよいよ本番。先ほど作った関数と自作のlerpパッケージを使い、受け取った @<m>{\left( x,y\right)}に対して線形補正して画素値を返すエフェクタを作りましょう。
+そして@<list>{innnerfunc}で作った関数と自作のlerpパッケージ(@<list>{resize-lerp})を使い、受け取った @<m>{\left( x,y\right)}に対して線形補正して拡大後の画素値を返すエフェクタを作りましょう。
 
 //list[lerp][線形補正法を使った画素値の計算][go]{
 // LerpEffect (x,y)に対してLerpを行った結果の画素値を返す関数
@@ -239,7 +240,6 @@ func LerpEffect(src image.Image, xRatio, yRatio float64, x, y int) color.RGBA64 
 	a := lerp.Lerp(initGetOneColorFunc(src, "A"), alpha, beta, ps)
 
 	return color.RGBA64{uint16(r), uint16(g), uint16(b), uint16(a)}
-}
 }
 //}
 
@@ -273,14 +273,14 @@ func Resize(img image.Image, xRatio, yRatio float64) image.Image {
 
 ここからは更に実践的な内容に入りましょう。ブログを作成する際にOGP画像を作成するのってメンドくさいですよね。この節では画像やテキストの合成をGoで行い、OGP画像を自動で生成できるようにしましょう。今回は@<img>{po3rin-ogp}のようなOGP画像生成を目指します。
 
-//image[po3rin-ogp][今回作るOGP画像][scale=0.6]{
+//image[po3rin-ogp][今回作るOGP画像][scale=0.7]{
 //}
 
 === 画像の合成
 
-今回、画像の合成に追いては@<img>{po3rin-synthesis-flow}のようなフローを踏みます。
+今回、画像の合成においては@<img>{po3rin-synthesis-flow}のようなフローを踏みます。背景画像にマスクをかけてdstに合成し、Goのロゴをその上からdstに合成します。矢印に紐づいている関数の意味は後ほど説明します。
 
-//image[po3rin-synthesis-flow][dstに画像を合成のフロー][scale=0.8]{
+//image[po3rin-synthesis-flow][dstに画像を合成するフロー][scale=0.8]{
 //}
 
 まずは今回必要な画像を準備しましょう。
@@ -293,7 +293,7 @@ $ curl -o go.png \
 https://s3-ap-northeast-1.amazonaws.com/po3rin-golangtokyo/img/go.png
 //}
 
-では必要な画像を準備する関数を作りましょう。必要なのはsrc(Goのロゴ)とcover(背景画像)とmask(背景画像をマスキングする画像)とdst(合成を受ける画像)です。画像はそれぞれOGP画像の大きさに合うように前節で実装したリサイズ関数を使いましょう。前節の実装を飛ばした方は、@<code>{github.com/po3rin/resize}パッケージとして全く同じリサイズ機能を提供するパッケージを用意したのそちらを使いましょう。
+では必要な素材を準備する関数を作りましょう。必要なのはsrc(Goのロゴ)とcover(背景画像)とmask(背景画像をマスキングする画像)とdst(合成を受ける画像)です。画像はそれぞれOGP画像の大きさに合うように前節で実装したリサイズ関数を使いましょう。前節の実装を飛ばした方は、@<code>{github.com/po3rin/resize}パッケージとして全く同じリサイズ機能を提供するパッケージを用意したのそちらを使いましょう。
 
 //list[getimagefunc][必要な画像を返す関数群][go]{
 // NewRect 指定色で塗りつぶした画像を生成する。
@@ -327,7 +327,7 @@ func GetCover() image.Image {
 }
 //}
 
-@<code>{NewRect}はdstとmaskを作る為の関数です。新しいRGBA画像を作成して、1画素ごとに引数で受け取った色をセットしているだけです。そして、GetCoverとGetSrcはそれぞれ合成する画像を読み込んでOGP画像の大きさに合うようにリサイズしています。@<list>{getimagefunc}で作った関数を使って画像合成をしてみましょう。
+@<code>{NewRect}はdstとmaskを作る為の関数です。1画素ごとに引数で受け取った色をセットしているだけです。そして、GetCoverとGetSrcはそれぞれ合成する画像を読み込んでOGP画像の大きさに合うようにリサイズしています。@<list>{getimagefunc}で作った関数を使って画像合成をしてみましょう。
 
 //list[synthesis][画像の合成][go]{
 
@@ -512,8 +512,10 @@ OpenCVで鉄板の顔認識をやってみます。画像を読み込んで顔�
 //footnote[casc][カスケードファイルはOpenCVのリポジトリ(https://github.com/opencv/opencv/tree/master/data/haarcascades)からもダウンロードできます]
 
 //list[download_src][顔認識用に必要なファイルをダウンロード][]{
+// urlが改行されているので注意
 $ curl -o haarcascade_frontalface_alt.xml \
-https://s3-ap-northeast-1.amazonaws.com/po3rin-golangtokyo/casc/haarcascade_frontalface_alt.xml
+https://s3-ap-northeast-1.amazonaws.com/po3rin-golangtokyo/casc/haarcascade_front
+alface_alt.xml
 
 $ curl -o nogi.jpg \
 https://s3-ap-northeast-1.amazonaws.com/po3rin-golangtokyo/img/face.jpg
@@ -564,7 +566,7 @@ func main() {
 }
 //}
 
-Mat形式はn次元の密集した数値のシングルチャネルまたはマルチチャネル配列を表し、OpenCVでよく使われるデータ構造です。Mat形式のデータを@<code>{classifier.DetectMultiScale}に渡せば、顔部分を囲った範囲である image.Rectangle型(もうすでにお馴染み) のスライスが返ってきます。後は@<code>{gocv.Rectangle}関数で顔部分を囲み、画像として出力します。@<list>{face-detect}を実行してみると@<img>{po3rin-facedetect}のような画像ができるはずです。
+Mat形式はn次元の密集した数値のシングルチャネルまたはマルチチャネル配列を表し、OpenCVで主に使われるデータ構造です。Mat形式のデータを@<code>{classifier.DetectMultiScale}に渡せば、顔部分を囲った範囲である image.Rectangle型(もうすでにお馴染み) のスライスが返ってきます。後は@<code>{gocv.Rectangle}関数で顔部分を囲み、画像として出力します。@<list>{face-detect}を実行してみると@<img>{po3rin-facedetect}のような画像ができるはずです。
 
 //image[po3rin-facedetect][GoCVを使った顔認識][scale=0.5]{
 //}
@@ -600,12 +602,12 @@ func (c *CascadeClassifier) DetectMultiScale(img Mat) []image.Rectangle {
 //image[po3rin-drawflow][今回のDrawMaskの概要][scale=0.8]{
 //}
 
-ここでのポイントはGopehr君の輪郭を認識してマスクを作ることです。ここでもOpenCVが威力を発揮します。OpenCVを使っていく前に、まずはヘルパー関数を3つ作ります。まずは@<img>{po3rin-contours_flow}マスクを作るまでのフローを確認しましょう。マスクを作るまでにsrcに対してグレーケール化、2値化、輪郭抽出&塗りつぶしが行われます。この結果を使ってマスクを作ります。
+ここでのポイントはGopehr君の輪郭を認識してマスクを作ることです。ここでもOpenCVが威力を発揮します。@<img>{po3rin-contours_flow}でマスクを作るまでのフローを確認しましょう。マスクを作るまでにsrcに対してグレーケール化、2値化、輪郭抽出&塗りつぶしが行われます。この結果を使ってマスクを作ります。
 
 //image[po3rin-contours_flow][Mask生成までのフロー][scale=1]{
 //}
 
-ここでOpenCVを使っていく前に今回使う関数を作っておきます。3つ目の関数は輪郭抽出した後の画像からmaskを作る関数です。
+早速実装していきましょう。まずはOpenCVを使っていく前に関数を3つ作ります。
 
 //list[ready-contours][画像合成のための準備][go]{
 // Mat型からImage.Image型に変換する
@@ -641,7 +643,7 @@ func white2mask(src image.Image) image.Image {
 }
 //}
 
-さて、いよいよ次は、OpenCVを使った輪郭抽出です。
+さて、いよいよ次はOpenCVを使った輪郭抽出です。
 
 ===[column] GoCVのオススメの調べ方
 
@@ -688,7 +690,7 @@ func main() {
 }
 //}
 
-ここではgocvパッケージの中の多くの関数を使っています。一個ずつ見ていきましょう。
+ここではgocvパッケージの中の関数を多く使っています。一個ずつ見ていきましょう。
 
 @<code>{gocv.CvtColor}関数では第三引数に変換したいMatTypeを指定することでカラーを変換できます。
 
@@ -721,7 +723,7 @@ func DrawContours(
 )
 //}
 
-それぞれの関数を簡単に紹介しましたが、引数の意味はOpenCVのドキュメント@<fn>{opencvdoc}が詳しいのでこちらを参照ください。これで海で遊ぶGopherくんの画像を作成できました。当然、標準入力を変えれば、色んな背景でGopherくんを遊ばせてあげることができます。GoCVを使ったサンプルコードはドキュメント@<fn>{gocvdoc}で多く紹介されているので、こちらをぜひ試してみてください。
+今回使ったgocvの関数を簡単に紹介しましたが、引数の意味はOpenCVのドキュメント@<fn>{opencvdoc}が詳しいのでこちらを参照ください。これで海で遊ぶGopherくんの画像を作成できました。当然、標準入力を変えれば、色んな背景でGopherくんを遊ばせてあげることができます。GoCVを使ったサンプルコードはドキュメント@<fn>{gocvdoc}で多く紹介されているので、こちらをぜひ試してみてください。
 //footnote[opencvdoc][https://docs.opencv.org/3.3.0/index.html]
 //footnote[gocvdoc][https://gocv.io/writing-code/more-examples/]
 
