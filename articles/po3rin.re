@@ -2,7 +2,7 @@
 
 == はじめに
 
-こんにちは。白ヤギコーポレーションでバックエンドエンジニアをしているpo3rinです。この章ではGoによる画像処理&画像解析の方法を紹介します。最初は入門から始まり、中盤からは様々な画像処理のTipsを紹介します。終盤では更に突っ込んでOpenCVを使った顔認識や輪郭抽出などの方法を紹介します。初めての方でもこの章を読み終わる頃にはGoでエレガントに画像を扱えるようになっていることでしょう。ソースコードは全て私のGitHubリポジトリ@<fn>{repo}に上げているので参考にどうぞ。
+こんにちは。白ヤギコーポレーションでバックエンドエンジニアをしているpo3rinです。この章ではGoによる画像処理&画像解析の方法を紹介します。最初は入門から始まり、中盤からは様々な画像処理のTipsを紹介します。終盤では更に突っ込んでOpenCVを使った顔認識や輪郭抽出などの方法を紹介します。初めての方でもこの章を読み終わる頃にはGoでエレガントに画像を扱えるようになっていることでしょう。ソースコードは全て私のGitHubリポジトリ@<fn>{repo}に置いてあるので参考にどうぞ。
 //footnote[repo][https://github.com/po3rin/go-image-manipulation]
 
 === 今回使う素材画像について
@@ -19,7 +19,7 @@
 
 まずはGoで画像を扱う際の中心になるimageパッケージの基本を押さえましょう。このタイミングで@tottieさんのGopherくんのイラスト(@<img>{po3rin-tottie-gopher})をダウンロードしておいてください。
 
-//list[download_image][可愛いGopherくんの画像をローカルに落とす][]{
+//list[download_gopher][可愛いGopherくんの画像をローカルに落とす][]{
 $ curl -o gopher.png \
 https://s3-ap-northeast-1.amazonaws.com/po3rin-golangtokyo/img/gopher.png
 //}
@@ -56,7 +56,7 @@ func main() {
 }
 //}
 
-@<code>{png.Decode}で標準入力を@<code>{image.Image}型にデコードしています。@<code>{Image.At}メソッドの引数や@<code>{Image.Bounds}メソッドで返ってくる画像の座標は一番左上を@<m>{\left( 0,0\right)}としています。これを実行すると画像の縦横の長さや、色についての情報が取れます。
+@<list>{getimg}では@<code>{png.Decode}で標準入力を@<code>{image.Image}型にデコードしています。@<list>{getimg}を@<list>{rungo}のように実行すると画像の縦横の長さや、色についての情報が確認出来ます。
 
 //list[rungo][main.goの実行][]{
 $ go run main.go < gopher.png
@@ -86,7 +86,7 @@ func init() {
 }
 //}
 
-上のようにinit関数で使える画像フォーマットをパッケージ内のinit関数内で登録しています。その為、init関数を発火させる為にブランクインポートをする必要があります。
+@<list>{image_register}のようにinit関数で使える画像フォーマットをパッケージ内のinit関数内で登録しています。その為、init関数を発火させる為にブランクインポートをする必要があります。
 
 === 画像のカラーモードを変える
 
@@ -116,7 +116,7 @@ func main() {
 }
 //}
 
-これを実行するとグレイスケールのGopherくん(@<img>{po3rin-gray_gopher}）ができます。
+@<list>{grayscale}を実行するとグレイスケールのGopherくん(@<img>{po3rin-gray_gopher}）ができます。
 
 //list[withoutput][main.goの実行][]{
 $ go run main.go < gopher.png > gray_gopher.png
@@ -129,7 +129,7 @@ $ go run main.go < gopher.png > gray_gopher.png
 
 == 線形補間法を実装して画像リサイズの仕組みを学ぼう
 
-今までの知識を使って少し骨のある実装をしてみましょう。@<code>{resize}パッケージを作り、画像を指定倍率でリサイズできる@<code>{Resize}関数を実装します。今回は標準パッケージのみで実装していく事で、Goにおける実装方法だけでなく、画像の拡大縮小の仕組みも学んでいきましょう。
+今までの知識を使って少し骨のある実装をしてみましょう。@<code>{resize}パッケージを作り、画像を指定倍率でリサイズできる@<code>{Resize}関数を実装します。今回は標準パッケージのみで実装していく事で、Goにおける実装方法だけでなく、画像の拡大縮小の仕組みも学びます。
 
 === 線形補間法(lerp)の概要と実装
 
@@ -147,7 +147,7 @@ $ go run main.go < gopher.png > gray_gopher.png
 #@# f\left( x',y'\right) = f\left( x,y\right) \alpha \beta + f\left( x+1,y\right) \left( 1-\alpha\right) \beta + f\left( x,y+1\right) \alpha \left( 1-\beta\right) + f\left( x+1,y+1\right) \left( 1-\alpha\right) \left( 1-\beta\right)
 #@# //}
 
-@<m>{\left( x',y'\right)}の周りの点は先ほど説明した近傍4画素です。今回のケースにおける関数@<m>{f}は拡大縮小後の座標を渡せば補正後の画素値を返してくれる関数です。@<m>{\alpha}と@<m>{\beta}は座標間の距離を表します(座標ごとの重み付けのため)。やはりエンジニアたるもの、コードを書いてこそ理解できるというもの。早速lerpパッケージを作成しましょう。このパッケージは画像に関するコードは排除し、単純にLerpのアルゴリズムを実装したパッケージです。
+@<m>{\left( x',y'\right)}の周りの点は先ほど説明した近傍4画素です。今回のケースにおける関数@<m>{f}は拡大縮小後の座標を渡せば補正後の画素値を返す関数です。@<m>{\alpha}と@<m>{\beta}は座標間の距離を表します(座標ごとの重み付けのため)。やはりエンジニアたるもの、コードを書いてこそ理解できるというもの。早速lerpパッケージを作成しましょう。このパッケージは画像に関するコードは排除し、単純にLerpのアルゴリズムを実装したパッケージです。
 
 //list[resize-lerp][lerpパッケージの実装][go]{
 package lerp
@@ -267,7 +267,7 @@ func Resize(img image.Image, xRatio, yRatio float64) image.Image {
 }
 //}
 
-おめでとうございます！標準パッケージだけで画像リサイズ関数を作る事ができました！
+おめでとうございます！標準パッケージだけで画像リサイズ関数を作る事ができました！今回の実装を経て、画像処理アルゴリズムをGoでどのように実装するかを掴んで頂ければ幸いです。
 
 == 画像やテキストを合成してOGP画像を生成してみよう
 
@@ -293,7 +293,7 @@ $ curl -o go.png \
 https://s3-ap-northeast-1.amazonaws.com/po3rin-golangtokyo/img/go.png
 //}
 
-では必要な画像を準備してくれる関数を作りましょう。必要なのはsrc(Goのロゴ)とcover(背景画像)とmask(背景画像をマスキングする画像)とdst(合成を受ける画像)です。画像はそれぞれOGP画像の大きさに合うように前節で実装したリサイズ関数を使いましょう。前節の実装を飛ばした方は、@<code>{github.com/po3rin/resize}パッケージとして全く同じリサイズ機能を提供するパッケージを用意したのそちらを使いましょう。
+では必要な画像を準備する関数を作りましょう。必要なのはsrc(Goのロゴ)とcover(背景画像)とmask(背景画像をマスキングする画像)とdst(合成を受ける画像)です。画像はそれぞれOGP画像の大きさに合うように前節で実装したリサイズ関数を使いましょう。前節の実装を飛ばした方は、@<code>{github.com/po3rin/resize}パッケージとして全く同じリサイズ機能を提供するパッケージを用意したのそちらを使いましょう。
 
 //list[getimagefunc][必要な画像を返す関数群][go]{
 // NewRect 指定色で塗りつぶした画像を生成する。
@@ -327,7 +327,7 @@ func GetCover() image.Image {
 }
 //}
 
-@<code>{NewRect}はdstとmaskを作る為の関数です。新しいRGBA画像を作成して、1画素ごとに引数で受け取った色をセットしているだけです。そして、GetCoverとGetSrcはそれぞれ合成する画像を読み込んでOGP画像の大きさに合うようにリサイズしています。これらの関数を使って画像合成をしてみましょう。
+@<code>{NewRect}はdstとmaskを作る為の関数です。新しいRGBA画像を作成して、1画素ごとに引数で受け取った色をセットしているだけです。そして、GetCoverとGetSrcはそれぞれ合成する画像を読み込んでOGP画像の大きさに合うようにリサイズしています。@<list>{getimagefunc}で作った関数を使って画像合成をしてみましょう。
 
 //list[synthesis][画像の合成][go]{
 
@@ -380,9 +380,9 @@ func DrawMask(
 
 ===[column] src,mask,dstの意味とそれぞれのPointについて
 
-これまでdstやsrcという名前を使ってきましたが、それぞれどういう意味なのでしょうか。dstはdestination(目的地)という意味でsrcはソースという意味ですね。つまり目的地対してソースを使って処理をするというのが基本の考え方です。それに対してmaskはsrcに対してマスキングを行う為の画像を意味します。draw系関数のそれぞれのPointは@<img>{po3rin-mask}のようにrの開始ポイントを指定しています。
+画像処理を行う際に、標準パッケージなどの関数やメソッドでは頻繁に@<code>{dst}や@<code>{src}、@<code>{mask}などの名前のついた引数を目にしますが、どういう意味で使われているのでしょうか。dstはdestination(目的地)の略語であり、srcはソースという意味です。つまり、ソース(src)を使って目的の画像を作っていくというのが基本の考え方です。それに対してmaskはsrcに対してマスキングを行う為の画像を意味します。@<img>{po3rin-mask}をみるとそれぞれの関係がはっきりします。
 
-//image[po3rin-mask][src,mask,dstを使ったDrawMaskの考え方(Go公式ブログから引用)][scale=0.8]{
+//image[po3rin-mask][src,mask,dstを使ったDrawMaskの考え方][scale=0.8]{
 //}
 
 ===[/column]
@@ -443,7 +443,7 @@ func main() {
 
 お疲れ様です。、実行の準備が整いました。早速OGP画像を生成してみましょう。
 
-//list[download_image][OGP生成を実行][]{
+//list[create_ogp][OGP生成を実行][]{
 $ go run main.go < go.png > result.png
 //}
 
@@ -451,11 +451,13 @@ $ go run main.go < go.png > result.png
 
 == OpenCVを使って画像解析をやってみよう
 
-ここからはOpenCVを駆使して画像に対して更に進んだ処理を行ってみましょう。
+ここからはOpenCV@<fn>{opencv}を駆使して画像に対して更に進んだ処理を行ってみましょう。
+//footnote[opencv][OpenCV https://opencv.org/]
 
 === OpenCVとは
 
-画像処理・画像解析および機械学習等の機能を持つライブラリです。C/C++、Java、Python、MATLAB用ライブラリですが、これをGo言語で扱うためにラップしたパッケージGoCVがありますのでこちらを使います。2018年11月にOpenCV 4.0がリリースされ、GoCVも4.0に対応しています。
+OpenCVは画像処理・画像解析および機械学習等の機能を持つライブラリです。C/C++、Java、Python、MATLAB用のライブラリですが、Go言語で扱うためにラップしたパッケージGoCV@<fn>{gocv}がありますのでこちらを使います。2018年11月にOpenCV 4.0がリリースされ、GoCVも4.0に対応しています。
+//footnote[gocv][GoCV https://gocv.io/]
 
 === OpenCVの環境構築
 
@@ -496,7 +498,7 @@ run:
 		gocv-playground /bin/sh -c "${CMD}"
 //}
 
-こうすると下記で任意のコマンドが実行できるようになります。それぞれgocvのバージョンとOpenCVのバージョンです。これでGoでOpenCVを使う環境が整いました。
+こうすると@<list>{run-docker-in-makefile}で任意のコマンドが実行できるようになります。それぞれGoCVのバージョンとOpenCVのバージョンです。これでGoでOpenCVを使う環境が整いました。
 
 //list[run-docker-in-makefile][Dockerfile][makeでコマンド実行]{
 $ make run CMD="go run main.go"
@@ -509,15 +511,15 @@ opencv verson: 4.0.1
 OpenCVで鉄板の顔認識をやってみます。画像を読み込んで顔認識した地点を青い四角で囲みましょう。今回のサンプルは正面の顔を対象にしています。まずは必要な物を揃えましょう。1つ目は人間数人が正面で写った画像。もう1つは学習済みカスケード型分類器データ（カスケードファイル）です。今回の要件にあったhaarcascade_frontalface_alt.xml@<fn>{casc}をダウンロードしておきます。
 //footnote[casc][カスケードファイルはOpenCVのリポジトリ(https://github.com/opencv/opencv/tree/master/data/haarcascades)からもダウンロードできます]
 
-//list[download_image][顔認識用に必要なファイルをダウンロード][]{
+//list[download_src][顔認識用に必要なファイルをダウンロード][]{
 $ curl -o haarcascade_frontalface_alt.xml \
 https://s3-ap-northeast-1.amazonaws.com/po3rin-golangtokyo/casc/haarcascade_frontalface_alt.xml
 
 $ curl -o nogi.jpg \
-https://s3-ap-northeast-1.amazonaws.com/po3rin-golangtokyo/img/nogi.jpg
+https://s3-ap-northeast-1.amazonaws.com/po3rin-golangtokyo/img/face.jpg
 //}
 
-これで準備ができました。gocvパッケージを使ってコードを書いていきましょう。
+これで準備ができました。GoCVパッケージを使ってコードを書いていきましょう。
 
 //list[face-detect][顔認識][go]{
 package main
@@ -562,16 +564,14 @@ func main() {
 }
 //}
 
-Mat形式はn次元の密集した数値のシングルチャネルまたはマルチチャネル配列を表し、OpenCVでよく使われるデータ構造です。Mat形式のデータを@<code>{classifier.DetectMultiScale}に渡せば、顔部分を囲った範囲である image.Rectangle型(もうすでにお馴染み) のスライスが返ってきます。後は@<code>{gocv.Rectangle}関数で顔部分を囲み、画像として出力します。これを実行してみると@<img>{po3rin-facedetect}のような画像ができるはずです。
+Mat形式はn次元の密集した数値のシングルチャネルまたはマルチチャネル配列を表し、OpenCVでよく使われるデータ構造です。Mat形式のデータを@<code>{classifier.DetectMultiScale}に渡せば、顔部分を囲った範囲である image.Rectangle型(もうすでにお馴染み) のスライスが返ってきます。後は@<code>{gocv.Rectangle}関数で顔部分を囲み、画像として出力します。@<list>{face-detect}を実行してみると@<img>{po3rin-facedetect}のような画像ができるはずです。
 
-//image[po3rin-facedetect][gocvを使った顔認識][scale=0.5]{
+//image[po3rin-facedetect][GoCVを使った顔認識][scale=0.5]{
 //}
-
-
 
 ===[column] GoCVのパッケージにある import C について
 
-Goはcgoを使ってCのコードを簡単に呼び出せる機能を提供しています。GoCVのソースコードを見るとOpenCVのCのソースコードをgocvで読み込んでいます。
+Goはcgoパッケージを使ってCのソースコードを簡単に呼び出せる機能を提供しています。GoCVのソースコードを見るとOpenCVのソースコードを読み込んでいます。
 
 //list[cgo][cgoを使ってCのコードを読み込み][go]{
 package gocv
@@ -595,7 +595,7 @@ func (c *CascadeClassifier) DetectMultiScale(img Mat) []image.Rectangle {
 
 === 輪郭抽出とマスクを使った画像合成
 
-顔認識を行いましたが、せっかくなのでgocvのexampleにない物を実装しましょう。OpenCVを使った輪郭抽出からの画像合成を行います。今回は輪郭で切り抜きしたGopherくんを海で遊ばせましょう。@<img>{po3rin-drawflow}が今回のDrawMaskの概要になります。
+顔認識を行いましたが、せっかくなのでGoCVのexampleにない物を実装しましょう。OpenCVを使った輪郭抽出からの画像合成を行います。今回は輪郭で切り抜きしたGopherくんを海で遊ばせましょう。@<img>{po3rin-drawflow}が今回のDrawMaskの概要になります。
 
 //image[po3rin-drawflow][今回のDrawMaskの概要][scale=0.8]{
 //}
