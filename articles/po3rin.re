@@ -380,7 +380,7 @@ func DrawMask(
 
 ===[column] src,mask,dstの意味とそれぞれのPointについて
 
-画像処理を行う際に、標準パッケージなどの関数やメソッドでは頻繁に@<code>{dst}や@<code>{src}、@<code>{mask}などの名前のついた引数を目にしますが、どういう意味で使われているのでしょうか。dstはdestination(目的地)の略語であり、srcはソースという意味です。つまり、ソース(src)を使って目的の画像を作っていくというのが基本の考え方です。それに対してmaskはsrcに対してマスキングを行う為の画像を意味します。@<img>{po3rin-mask}をみるとそれぞれの関係がはっきりします。
+画像処理を行う際に、標準パッケージなどの関数やメソッドでは頻繁に@<code>{dst}や@<code>{src}、@<code>{mask}などの名前のついた引数を目にします。dstはdestination(目的地)の略であり、srcはそのままソースという意味です。つまり、ソース(src)を使って目的の画像(dst)を作っていくというのが基本の考え方です。それに対してmaskはsrcに対してマスキングを行う為の画像を意味します。@<img>{po3rin-mask}をみるとそれぞれの関係がはっきりします。
 
 //image[po3rin-mask][src,mask,dstを使ったDrawMaskの考え方][scale=0.8]{
 //}
@@ -441,7 +441,7 @@ func main() {
 }
 //}
 
-お疲れ様です。、実行の準備が整いました。早速OGP画像を生成してみましょう。
+お疲れ様です。実行の準備が整いました。早速OGP画像を生成してみましょう。
 
 //list[create_ogp][OGP生成を実行][]{
 $ go run main.go < go.png > result.png
@@ -451,7 +451,7 @@ $ go run main.go < go.png > result.png
 
 == OpenCVを使って画像解析をやってみよう
 
-ここからはOpenCV@<fn>{opencv}を駆使して画像に対して更に進んだ処理を行ってみましょう。
+ここからはOpenCV@<fn>{opencv}を駆使して画像に対して更に応用的な処理を行ってみましょう。
 //footnote[opencv][OpenCV https://opencv.org/]
 
 === OpenCVとは
@@ -498,7 +498,7 @@ run:
 		gocv-playground /bin/sh -c "${CMD}"
 //}
 
-こうすると@<list>{run-docker-in-makefile}で任意のコマンドが実行できるようになります。それぞれGoCVのバージョンとOpenCVのバージョンです。これでGoでOpenCVを使う環境が整いました。
+こうすると@<list>{run-docker-in-makefile}のように、OpenCVが使えるコンテナ内で任意のコマンドが実行できるようになります。それぞれGoCVのバージョンとOpenCVのバージョンです。これでGoでOpenCVを使う環境が整いました。
 
 //list[run-docker-in-makefile][Dockerfile][makeでコマンド実行]{
 $ make run CMD="go run main.go"
@@ -602,9 +602,16 @@ func (c *CascadeClassifier) DetectMultiScale(img Mat) []image.Rectangle {
 //image[po3rin-drawflow][今回のDrawMaskの概要][scale=0.8]{
 //}
 
-ここでのポイントはGopehr君の輪郭を認識してマスクを作ることです。ここでもOpenCVが威力を発揮します。@<img>{po3rin-contours_flow}でマスクを作るまでのフローを確認しましょう。マスクを作るまでにsrcに対してグレーケール化、2値化、輪郭抽出&塗りつぶしが行われます。この結果を使ってマスクを作ります。
+ここで海の画像をダウンロードしておきましょう。
 
-//image[po3rin-contours_flow][Mask生成までのフロー][scale=1]{
+//list[download_sea][海の画像を準備][]{
+$ curl -o sea.png \
+https://s3-ap-northeast-1.amazonaws.com/po3rin-golangtokyo/img/sea.png
+//}
+
+この節でのポイントはGopehr君の輪郭を認識してマスクを作ることです。ここでもOpenCVが威力を発揮します。@<img>{po3rin-contours_flow}でマスクを作るまでのフローを確認しましょう。マスクを作るまでにsrcに対してグレーケール化、2値化、輪郭抽出&塗りつぶしが行われます。この結果を使ってマスクを作ります。
+
+//image[po3rin-contours_flow][Mask生成までのフロー][scale=0.9]{
 //}
 
 早速実装していきましょう。まずはOpenCVを使っていく前に関数を3つ作ります。
@@ -647,7 +654,7 @@ func white2mask(src image.Image) image.Image {
 
 ===[column] GoCVのオススメの調べ方
 
-GoCVのドキュメントはexampleが充実しているとはいえ、全ての関数やメソッドの解説を網羅している訳ではありません。その為、OpenCVを初めて使う場合は、PythonやC++の実装例からOpenCVの実装方法を調べることをお勧めします。幸運なことに、GoCVはOpenCVが提供する関数名や引数がほぼ一致しているので調べるのには苦労しないでしょう。
+GoCVのドキュメントはexampleが充実しているとはいえ、全ての関数やメソッドを網羅している訳ではありません。その為、OpenCVを初めて使う場合は、PythonやC++の実装例からOpenCVの実装方法を調べることをお勧めします。幸運なことに、GoCVはOpenCVが提供する関数名や引数がほぼ一致しているので調べるのには苦労しないでしょう。
 
 ===[/column]
 
@@ -692,13 +699,13 @@ func main() {
 
 ここではgocvパッケージの中の関数を多く使っています。一個ずつ見ていきましょう。
 
-@<code>{gocv.CvtColor}関数では第三引数に変換したいMatTypeを指定することでカラーを変換できます。
+@<code>{gocv.CvtColor}関数(@<list>{cvtColor})では第三引数に変換したいMatTypeを指定することでカラーを変換できます。
 
 //list[cvtColor][gocv.CvtColor][go]{
 func CvtColor(src Mat, dst *Mat, code ColorConversionCode)
 //}
 
-@<code>{gocv.Threshold}関数では画像の2値化を行なっています。引数に渡す閾値(@<code>{thresh})によってどの画素値を境に2値化するか決定します。今回は画像に合わせて最適な閾値を決定しました。ThresholdTypeは閾値の種類です。@<code>{gocv.ThresholdBinaryInv}は閾値を超えた箇所は白に、他はmaxvalueに変換するthresholdTypeです。
+@<code>{gocv.Threshold}関数(@<list>{threshold})では画像の2値化を行なっています。引数に渡す閾値(@<code>{thresh})によってどの画素値を境に2値化するか決定します。今回は画像に合わせて最適な閾値を決定しました。ThresholdTypeは閾値の種類です。@<code>{gocv.ThresholdBinaryInv}は閾値を超えた箇所は白に、他はmaxvalueに変換するthresholdTypeです。
 
 //list[threshold][gocv.Threshold][go]{
 func Threshold(
@@ -706,7 +713,7 @@ func Threshold(
 )
 //}
 
-@<code>{gocv.FindContours}関数で、輪郭抽出を行なっています。引数の@<code>{mode}で輪郭抽出するモードを選ぶことができます。今回使っているRetrExternalモードは輪郭のうち最も外側の輪郭のみを抽出するモードです。@<code>{method}では輪郭の近似手法を指定します。輪郭上の全点の情報を保持してしまうのは無駄なので、@<code>{gocv.ChainApproxSimple}は水平・垂直・斜めの線分を圧縮し、それらの端点のみを残します．これにより無駄なメモリの使用を抑えられます。
+@<code>{gocv.FindContours}関数(@<list>{findContours})では輪郭抽出を行なっています。引数の@<code>{mode}で輪郭抽出するモードを選ぶことができます。今回使っているRetrExternalモードは輪郭のうち最も外側の輪郭のみを抽出するモードです。@<code>{method}では輪郭の近似手法を指定します。輪郭上の全点の情報を保持してしまうのは無駄なので、@<code>{gocv.ChainApproxSimple}は水平・垂直・斜めの線分を圧縮し、それらの端点のみを残します．これにより無駄なメモリの使用を抑えられます。
 
 //list[findContours][gocv.FindContours][go]{
 func FindContours(
@@ -714,7 +721,7 @@ func FindContours(
 ) [][]image.Point
 //}
 
-この輪郭抽出の結果を使って@<code>{gocv.DrawContours}関数で輪郭の中を白色で塗りつぶします。contoursは輪郭のデータです。第3引数contourIdxは描画したい輪郭のインデックス(第2引数で与えた輪郭のsliceから1つの輪郭だけを描画したいときに輪郭の指定に使います。全輪郭を描画する時はー1を指定します。他の引数は文字通り色(color)と線の太さ(thickness)を表します。
+輪郭抽出の結果を使って@<code>{gocv.DrawContours}関数(@<list>{drawContours})で輪郭の中を白色で塗りつぶします。@<code>{contours}は輪郭のデータです。第3引数@<code>{contourIdx}は描画したい輪郭のインデックス(第2引数で与えた輪郭のsliceから1つの輪郭だけを描画したいときに輪郭の指定に使います。全輪郭を描画する時はー1を指定します。他の引数は文字通り色(@<code>{color})と線の太さ(@<code>{thickness})を表します。
 
 //list[drawContours][gocv.DrawContours][go]{
 func DrawContours(
@@ -723,7 +730,7 @@ func DrawContours(
 )
 //}
 
-今回使ったgocvの関数を簡単に紹介しましたが、引数の意味はOpenCVのドキュメント@<fn>{opencvdoc}が詳しいのでこちらを参照ください。これで海で遊ぶGopherくんの画像を作成できました。当然、標準入力を変えれば、色んな背景でGopherくんを遊ばせてあげることができます。GoCVを使ったサンプルコードはドキュメント@<fn>{gocvdoc}で多く紹介されているので、こちらをぜひ試してみてください。
+今回使ったGoCVの関数を簡単に紹介しましたが、引数の意味はOpenCVのドキュメント@<fn>{opencvdoc}が詳しいのでこちらを参照ください。これで海で遊ぶGopherくんの画像を作成できました。当然、標準入力を変えれば、色んな背景でGopherくんを遊ばせてあげることができます。GoCVを使ったサンプルコードはドキュメント@<fn>{gocvdoc}で多く紹介されているので、こちらをぜひ試してみてください。
 //footnote[opencvdoc][https://docs.opencv.org/3.3.0/index.html]
 //footnote[gocvdoc][https://gocv.io/writing-code/more-examples/]
 
