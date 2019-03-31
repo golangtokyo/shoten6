@@ -2,12 +2,13 @@
 
 == はじめに
 
-初めましてpo3rinです。業務ではGo言語をメインに使って開発しています。この章ではGoによる画像処理&画像解析の方法を紹介します。最初は入門から始まり、中盤からは様々な画像処理のTipsを紹介します。終盤では更に突っ込んでOpenCVを使った顔認識や輪郭抽出などの方法を紹介します。初めての方でもこの章を読み終える頃には、Goでエレガントに画像を扱えるようになっていることでしょう。ソースコードは全て私のGitHubリポジトリ@<fn>{repo}に置いてあるので参考にどうぞ。
+初めましてpo3rinです。業務ではGo言語をメインに使って開発しています。この章ではGoによる画像処理&画像解析の方法を紹介します。1節では入門から始まり、2節では標準パッケージのみを使った画像リサイズの方法を紹介します。3節では画像や文字の合成の方法を紹介し、4節では更に突っ込んでOpenCVを使った顔認識や輪郭抽出などの方法を紹介します。初めての方でもこの章を読み終える頃には、Goでエレガントに画像を扱えるようになっていることでしょう。ソースコードは全て私のGitHubリポジトリ@<fn>{repo}に置いてあるので参考にどうぞ。
 //footnote[repo][https://github.com/po3rin/go-image-manipulation]
 
 === 今回使う素材画像について
 
-今回、@tottieさんのGopher@<fn>{gopher}くんのイラストの利用許可を頂きました。@<img>{po3rin-tottie-gopher}などの素敵なイラストを描いている方です。是非Twitter等で検索してみて下さい。
+今回、@tottie@<fn>{tottie}さんのGopher@<fn>{gopher}くんのイラストの利用許可を頂きました。@<img>{po3rin-tottie-gopher}などの素敵なイラストを描いている方です。
+//footnote[tottie][tottieさんのTwitterアカウントはこちら https://twitter.com/tottie1129]
 //footnote[gopher][Gopherの原作者は Renée French さんです]
 
 //image[po3rin-tottie-gopher][@tottieさんの可愛いGopherくんの画像][scale=0.4]{
@@ -15,18 +16,18 @@
 
 また、今回の章で使用するダウンロードデータを皆さんが金銭の発生する二次利用として利用してしまうと法律的にアウトなのでご了承ください。
 
-== imageパッケージの基本を抑えよう
+== imageパッケージの基本を押さえよう
 
 まずはGoで画像を扱う際の中心になるimageパッケージの基本を押さえましょう。このタイミングで@tottieさんのGopherくんのイラスト(@<img>{po3rin-tottie-gopher})をダウンロードしておいてください。
 
-//list[download_gopher][可愛いGopherくんの画像をローカルに落とす][]{
+//list[download_gopher][可愛いGopherくんの画像をダウンロードする][]{
 $ curl -o gopher.png \
 https://s3-ap-northeast-1.amazonaws.com/po3rin-golangtokyo/img/gopher.png
 //}
 
 === image.Imageの基本
 
-まずは画像ファイルを@<code>{image.Image}の型に変換して画像のデータをみてみましょう。
+まずは画像ファイルを@<code>{image.Image}インターフェースに変換して画像のデータをみてみましょう。
 
 //list[getimg][画像ファイルをimage.Imageに変換][go]{
 package main
@@ -56,7 +57,7 @@ func main() {
 }
 //}
 
-@<list>{getimg}では@<code>{png.Decode}で標準入力を@<code>{image.Image}型にデコードしています。@<list>{getimg}を@<list>{rungo}のように実行すると画像の縦横の長さや、色についての情報が確認出来ます。
+@<list>{getimg}では@<code>{png.Decode}関数で標準入力を@<code>{image.Image}インターフェースにデコードしています。@<list>{getimg}を@<list>{rungo}のように実行すると画像の縦横の長さや、色についての情報が確認出来ます。
 
 //list[rungo][main.goの実行][]{
 $ go run main.go < gopher.png
@@ -64,13 +65,13 @@ $ go run main.go < gopher.png
 
 ===[column] カラーモードとアルファチャネルについて
 
-RGBAとは、ディスプレイ画面で色を表現するために用いられる、赤（Red）、緑（Green）、青（Blue）の3色に、アルファ（Alpha）と呼ばれる透過度の情報を加えたもののです。RGBチャンネルにアルファ値が乗算されている形式をPre-multiplied Alpha(乗算済みアルファ)、乗算されていない形式をStraight Alphaと呼びます。Goのimage/colorパッケージでは、NRGBAはStraight Alphaを表現しています。
+RGBAとは、ディスプレイ画面で色を表現するために用いられる、赤（Red）、緑（Green）、青（Blue）の3色に、アルファ（Alpha）と呼ばれる透過度の情報を加えたもののです。RGBチャンネルにアルファ値が乗算されている形式をPre-multiplied Alpha(乗算済みアルファ)、乗算されていない形式をStraight Alphaと呼びます。Goのimage/colorパッケージでは、Straight Alphaを@<code>{color.NRGBAModel}構造体で表現しています。
 
 ===[/column]
 
-@<code>{image.Image}の実装を@<list>{image_Image}でみてみましょう。今回使った3つのメソッドを持つインターフェースになっています。先ほど確認したように、それぞれのメソッドは画像の基本的な情報を返します。
+@<code>{image.Image}インターフェースの実装を@<list>{image_Image}でみてみましょう。今回使った3つのメソッドを持つインターフェースになっています。先ほど確認したように、それぞれのメソッドは画像の基本的な情報を返します。
 
-//list[image_Image][image.Imageの実装][go]{
+//list[image_Image][image.Imageインターフェースの実装][go]{
 type Image interface {
 	ColorModel() color.Model    // 画像のカラーモードを返す。
 	Bounds() Rectangle          // 画像の領域を返す。
@@ -78,7 +79,7 @@ type Image interface {
 }
 //}
 
-Goではpng,jpeg,gifの画像フォーマットが標準パッケージでサポートされています。1点注意があり、画像フォーマットのパッケージの関数などを使わない場合でも@<code>{import _ image/png}のようにブランクインポートで対応するを読み込んでおかないと実行時にエラーが発生します。理由を探る為に@<code>{image/png/reader.go}をみてみましょう。
+Goではpng,jpeg,gifの画像フォーマットが標準パッケージでサポートされています。1点注意があり、画像フォーマットのパッケージの関数などを使わない場合でも@<code>{import _ image/png}のようにブランクインポートで画像フォーマットに対応するパッケージを読み込んでおかないと実行時にエラーが発生します。理由を探る為に@<code>{image/png/reader.go}をみてみましょう。
 
 //list[image_register][image.RegisterFormatによる画像フォーマット登録][go]{
 func init() {
@@ -86,23 +87,23 @@ func init() {
 }
 //}
 
-@<list>{image_register}のようにinit関数で使える画像フォーマットをパッケージ内のinit関数@<fn>{init}内で登録しています。その為、init関数を発火させる為にブランクインポートをする必要があります。
+@<list>{image_register}のように@<code>{init}関数@<fn>{init}で使える画像フォーマットをパッケージ内の@<code>{init}関数内で登録しています。その為、init関数を発火させる為にブランクインポートをする必要があります。
 //footnote[init][init関数は特殊な関数で、main関数よりも先に実行されます。主にパッケージの初期化に使われます。]
 
 === 画像のカラーモードを変える
 
-さて、image.Imageの基礎を抑えたところでimageパッケージでよくある実装パターンを1つ紹介します。例として画像をグレースケールに変換する処理をみてみましょう。
+さて、imageパッケージの基礎を押さえたところでimageパッケージでよくある実装パターンを1つ紹介します。例として画像をグレースケールに変換する処理をみてみましょう。
 
 //list[grayscale][画像をグレースケールに変換][go]{
 func main() {
 	img, _ := png.Decode(os.Stdin)
 	bounds := img.Bounds() // (0,0)-(460,460)
 
-	// 受け取った画像と同じ大きさのカラーモードGray16の画像を生成.
+	// 受け取った画像と同じ大きさのカラーモードGray16の画像を生成。
 	// この時点では460*460の真っ黒の画像です。
 	dst := image.NewGray16(bounds)
 
-	// 1ピクセルずつ処理します。
+	// 1画素ずつ処理します。
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			// 元画像の(x,y)ピクセルのカラーをGray16に変換。
@@ -117,7 +118,7 @@ func main() {
 }
 //}
 
-@<list>{grayscale}の通り、Goで画像加工をする際には、まず目的の画像(dstと呼ぶ)を作成し、元画像(srcと呼ぶ)から1画素ずつ処理してdstにセットするという流れになります。今回においてはsrcから1画素値づつ所得し、その色をグレースケール化してdstにセットしています。濃淡加工やセピア加工などのエフェクト処理においてもこのフローは鉄板なので覚えておきましょう。
+@<list>{grayscale}の通り、Goで画像加工をする際には、まず目的の画像(@<code>{dst}と呼ぶ)を作成し、元画像(@<code>{src}と呼ぶ)から1画素ずつ処理して@<code>{dst}にセットするという流れになります。今回においてはsrcから1画素値づつ所得し、その色をグレースケール化して@<code>{dst}にセットしています。濃淡加工やセピア加工などのエフェクト処理においてもこのフローは鉄板なので覚えておきましょう。
 
 @<list>{grayscale}を@<list>{withoutput}のように実行するとグレイスケールのGopherくん(@<img>{po3rin-gray_gopher}）ができます。
 
@@ -153,29 +154,28 @@ $ go run main.go < gopher.png > gray_gopher.png
 //list[resize-lerp][lerpパッケージの実装][go]{
 package lerp
 
-// Point lerpで使う座標
+// Point lerpで使う座標です。
 type Point struct {
 	X int
 	Y int
 }
 
-// Points lerpで使う近傍4座標
+// Points lerpで使う近傍4座標を表現します。
 type Points [4]Point
 
-// PosDependFunc 関数f
+// PosDependFunc 関数fを表現します。
 type PosDependFunc func(x, y int) float64
 
-// Lerp 線形補間法
-func Lerp(f PosDependFunc, a float64, b float64, ps Points) float64 {
-	n := (1.0-b)*(1.0-a)*f(ps[0].X, ps[0].Y) +
+// Lerp 線形補間法の実装です。
+func Lerp(f PosDependFunc, a, b float64, ps Points) float64 {
+	return (1.0-b)*(1.0-a)*f(ps[0].X, ps[0].Y) +
 		a*(1.0-b)*f(ps[1].X, ps[0].Y) +
 		b*(1-a)*f(ps[0].X, ps[1].Y) +
 		a*b*f(ps[1].X, ps[1].Y)
-	return n
 }
 //}
 
-今回はコードを追いやすいようにシンプルな形でパッケージを作りました。Lerpの式はLerp関数で実装しています。引数に関数@<m>{f}、@<m>{\alpha}、@<m>{\beta}、近傍4画素の位置だけ渡せば実行できるのがわかります。
+今回はコードを追いやすいようにシンプルな形でパッケージを作りました。Lerpの式は@<code>{Lerp}関数で実装しています。引数に関数@<m>{f}、@<m>{\alpha}、@<m>{\beta}、近傍4画素の位置だけ渡せば実行できるのがわかります。
 
 === 線形補間を使った画像リサイズ
 
@@ -187,16 +187,16 @@ func getLerpParam(dstPos int, ratio float64) (int, int, float64) {
 	// 拡大前の座標の所得 (拡大後の座標 / リサイズ比率)
 	v1float := float64(dstPos) / ratio
 
-	// 拡大前の座標から最も近い2つの整数値を所得
+	// 拡大前の座標から最も近い2つの整数値を所得する。
 	v1 := int(v1float)
 	v2 := v1 + 1
 
-	// (拡大前の座標の浮動小数点数 - 拡大前の座標の整数値)
+	// (拡大前の座標の浮動小数点数 - 拡大前の座標の整数値)。
 	v3 := v1float - float64(v1)
 	return v1, v2, v3
 }
 
-// initGetOneColorFunc srcのRGBAからいずれか1つを抽出する関数fを返す関数。
+// initGetOneColorFunc srcのRGBAからいずれか1つを抽出する関数fを返す関数です。
 func initGetOneColorFunc(src image.Image, colorName string) lerp.PosDependFunc {
 	return func(x, y int) float64 {
 		var c uint32
@@ -218,14 +218,14 @@ func initGetOneColorFunc(src image.Image, colorName string) lerp.PosDependFunc {
 そして@<list>{innnerfunc}で作った関数と自作のlerpパッケージ(@<list>{resize-lerp})を使い、受け取った @<m>{\left( x,y\right)}に対して線形補正して拡大後の画素値を返すエフェクタを作りましょう。
 
 //list[lerp][線形補正法を使った画素値の計算][go]{
-// LerpEffect (x,y)に対してLerpを行った結果の画素値を返す関数
+// LerpEffect (x,y)に対してLerpを行った結果の画素値を返す関数。
 // src は元画像 x,y はdstのx,yです。
 func LerpEffect(src image.Image, xRatio, yRatio float64, x, y int) color.RGBA64 {
 	// 元画像の近傍４画素の座標と、alpha、betaを所得
 	x1, x2, alpha := getLerpParam(x, xRatio)
 	y1, y2, beta := getLerpParam(y, yRatio)
 
-	// 元画像の近傍４画素の座標を格納
+	// 元画像の近傍４画素の座標を格納する。
 	ps := lerp.Points{
 		{X: x1, Y: y1},
 		{X: x2, Y: y1},
@@ -233,7 +233,7 @@ func LerpEffect(src image.Image, xRatio, yRatio float64, x, y int) color.RGBA64 
 		{X: x2, Y: y2},
 	}
 
-	// RGBAそれぞれの値に対してLerpを適用
+	// RGBAそれぞれの値に対してLerpを適用する。
 	r := lerp.Lerp(initGetOneColorFunc(src, "R"), alpha, beta, ps)
 	g := lerp.Lerp(initGetOneColorFunc(src, "G"), alpha, beta, ps)
 	b := lerp.Lerp(initGetOneColorFunc(src, "B"), alpha, beta, ps)
@@ -243,7 +243,7 @@ func LerpEffect(src image.Image, xRatio, yRatio float64, x, y int) color.RGBA64 
 }
 //}
 
-ではいよいよ終盤、グレースケールでやった方法と同じように、1ピクセルずつ今回作ったエフェクターで処理し、dstにセットして拡大縮小後の画像を完成させます。
+ではいよいよ終盤、グレースケールでやった方法と同じように、1画素ずつ今回作ったエフェクターで処理し、dstにセットして拡大縮小後の画像を完成させます。
 
 //list[resize][Resize関数の完成][go]{
 //Resize は与えられた画像を線形補間法を使用して画像を拡大・縮小する。
@@ -252,12 +252,12 @@ func Resize(img image.Image, xRatio, yRatio float64) image.Image {
 	width := int(float64(img.Bounds().Size().X) * xRatio)
 	height := int(float64(img.Bounds().Size().Y) * yRatio)
 
-	// 元となる新しい拡大画像(dst)を生成する
+	// 元となる新しい拡大画像(dst)を生成する。
 	newRect := image.Rect(0, 0, width, height)
 	dst := image.NewRGBA64(newRect)
 	bounds := dst.Bounds()
 
-	// 1画素ずつ線形補正法を使って画素値を計算してdstにセット
+	// 1画素ずつ線形補正法を使って画素値を計算してdstにセットする。
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			dst.Set(x, y, LerpEffect(img, xRatio, yRatio, x, y))
@@ -278,7 +278,7 @@ func Resize(img image.Image, xRatio, yRatio float64) image.Image {
 
 === 画像の合成
 
-今回、画像の合成においては@<img>{po3rin-synthesis-flow}のようなフローを踏みます。背景画像にマスクをかけてdstに合成し、Goのロゴをその上からdstに合成します。矢印に紐づいている関数の意味は後ほど説明します。
+今回、画像の合成においては@<img>{po3rin-synthesis-flow}のようなフローを踏みます。背景画像にマスクをかけて@<code>{dst}に合成し、Goのロゴをその上から@<code>{dst}に合成します。矢印に紐づいている関数の意味は後ほど説明します。
 
 //image[po3rin-synthesis-flow][dstに画像を合成するフロー][scale=0.8]{
 //}
@@ -293,7 +293,7 @@ $ curl -o go.png \
 https://s3-ap-northeast-1.amazonaws.com/po3rin-golangtokyo/img/go.png
 //}
 
-では必要な素材を準備する関数を作りましょう。必要なのはsrc(Goのロゴ)とcover(背景画像)とmask(背景画像をマスキングする画像)とdst(合成を受ける画像)です。画像はそれぞれOGP画像の大きさに合うように前節で実装したリサイズ関数を使いましょう。前節の実装を飛ばした方は、@<code>{github.com/po3rin/resize}パッケージとして全く同じリサイズ機能を提供するパッケージを用意したのそちらを使いましょう。
+では必要な素材を準備する関数を作りましょう。必要なのは@<code>{src}(Goのロゴ)と@<code>{cover}(背景画像)と@<code>{mask}(背景画像をマスキングする画像)と@<code>{dst}(合成を受ける画像)です。画像はそれぞれOGP画像の大きさに合うように前節で実装したリサイズ関数を使いましょう。前節の実装を飛ばした方は、@<code>{github.com/po3rin/resize}パッケージとして全く同じリサイズ機能を提供するパッケージを用意したのそちらを使いましょう。
 
 //list[getimagefunc][必要な画像を返す関数群][go]{
 // NewRect 指定色で塗りつぶした画像を生成する。
@@ -339,7 +339,7 @@ func main() {
 	cover := GetCover()
 	mask := NewRect(r, color.RGBA{0, 0, 0, 140})
 
-	// coverをmaskでマスキングした結果をdstに合成
+	// coverをmaskでマスキングした結果をdstに合成する。
 	draw.DrawMask(dst, r, cover, image.Pt(0, 0),
 		mask, image.Pt(0, 0), draw.Over,
 	)
@@ -352,12 +352,13 @@ func main() {
 		draw.Over,
 	)
 
-	// 書き出し
+	// 書き出し。
 	png.Encode(os.Stdout, dst)
 }
 //}
 
-ここで使っている@<code>{image/draw}パッケージは画像合成機能を提供しています。@<code>{draw.Draw}の実装を見ると単に@<code>{draw.DrawMask}をラップした関数になっています。
+ここで使っている@<code>{image/draw}パッケージは画像合成機能を提供しています。@<code>{draw.Draw}@<fn>{draw-code}の実装を見ると単に@<code>{draw.DrawMask}をラップした関数になっています。
+//footnote[draw-code][https://github.com/golang/go/blob/go1.12.1/src/image/draw/draw.go#L100]
 
 //list[draw][draw.Drawの実装][go]{
 // Draw calls DrawMask with a nil mask.
@@ -366,7 +367,8 @@ func Draw(dst Image, r image.Rectangle, src image.Image, sp image.Point, op Op) 
 }
 //}
 
-では@<code>{draw.DrawMask}の引数をみていきましょう。
+では@<code>{draw.DrawMask}@<fn>{drawmask-code}の引数をみていきましょう。
+//footnote[drawmask-code][https://github.com/golang/go/blob/go1.12.1/src/image/draw/draw.go#L106]
 
 //list[drawmask][draw.DrawMaskの実装][go]{
 // 長い為改行
@@ -387,14 +389,13 @@ func DrawMask(
 
 ===[/column]
 
-drawパッケージの解説と実際の使い方を抑えました。次はテキストの合成です。
+drawパッケージの解説と実際の使い方を押さえました。次はテキストの合成です。
 
 === テキストの合成
 
 テキストの合成においては準標準パッケージも使っていきます。テキストをdstに合成する関数を作りましょう。
 
 //list[text][画像にテキストを合成する関数の実装][go]{
-// DrawText テキストの合成
 package main
 
 import (
@@ -405,12 +406,12 @@ import (
 )
 
 func DrawText(img draw.Image, text string) image.Image {
-	// フォントファイルを読み込んでfreetype.Fontにパース
+	// フォントファイルを読み込んでfreetype.Fontにパース。
 	file, _ := os.Open("./mplus-1c-regular.ttf")
 	fontBytes, _ := ioutil.ReadAll(file)
 	f, _ := freetype.ParseFont(fontBytes)
 
-	// freetypeの機能で画像にテキストを合成
+	// freetypeの機能で画像にテキストを合成。
 	if f != nil {
 		c := freetype.NewContext()
 		c.SetFont(f)
@@ -426,13 +427,13 @@ func DrawText(img draw.Image, text string) image.Image {
 }
 //}
 
-分かりにくいのは@<code>{freetype.Context.SetSrc}です。なぜここで真っ白な画像を渡しているのでしょうか。@<code>{freetype.Context.DrawString}の実装を見ると、内部で@<code>{draw.DrawMask}が実行されています。ここではsrcに対しテキストの形のマスクをかけています。その為、srcの色がそのままテキストの色になっているのです。それでは先ほど画像合成をしていたmain関数にこの関数を差し込みましょう。
+分かりにくいのは@<code>{freetype.Context.SetSrc}です。なぜここで真っ白な画像を渡しているのでしょうか。@<code>{freetype.Context.DrawString}の実装を見ると、内部で@<code>{draw.DrawMask}が実行されています。ここでは@<code>{src}に対しテキストの形のマスクをかけています。その為、@<code>{src}の色がそのままテキストの色になっているのです。それでは先ほど画像合成をしていた@<code>{main}関数にこの関数を差し込みましょう。
 
 //list[textdraw][テキストの合成][go]{
 func main() {
 	// 省略...
 
-	// 合成するテキストを定義してDrawText関数に渡す
+	// 合成するテキストを定義してDrawText関数に渡す。
 	text := "Goではじめる画像処理、画像解析"
 	d := DrawText(dst, text)
 
@@ -535,33 +536,33 @@ import (
 
 func main() {
 
-	// classifier の初期化
+	// classifier の初期化。
 	classifier := gocv.NewCascadeClassifier()
 	defer classifier.Close()
 	if !classifier.Load("./haarcascade_frontalface_alt.xml") {
 		log.Fatal("Error reading cascade file")
 	}
 
-	// 画像パスを指定してMat形式に
+	// 画像のパスを指定してMat形式に変換する。
 	img := gocv.IMRead("./nogi.jpg", gocv.IMReadColor)
 	if img.Empty() {
 		log.Fatal("Error reading image")
 	}
 
-	// 顔検知
+	// 顔検知を実行。
 	rects := classifier.DetectMultiScale(img)
 	fmt.Printf("found %d faces\n", len(rects))
 
-	// 囲むための色を設定(今回は青)
+	// 囲むための色を設定(今回は青)。
 	blue := color.RGBA{0, 0, 255, 0}
 
-	// 認識した顔の数だけ四角で囲む
+	// 認識した顔の数だけ四角で囲む。
 	for _, r := range rects {
 		// 引数は (Mat形式のデータ、範囲、色、線の太さ)
 		gocv.Rectangle(&img, r, blue, 3)
 	}
 
-	// 結果を画像に書き出しΩ
+	// 結果を画像に書き出し。
 	gocv.IMWrite("result.png", img)
 }
 //}
@@ -617,21 +618,21 @@ https://s3-ap-northeast-1.amazonaws.com/po3rin-golangtokyo/img/sea.png
 早速実装していきましょう。まずはOpenCVを使っていく前に関数を3つ作ります。
 
 //list[ready-contours][画像合成のための準備][go]{
-// Mat型からImage.Image型に変換する
+// Mat型からImage.Image型に変換する。
 func matToImage(fileExt gocv.FileExt, mat gocv.Mat) image.Image {
 	srcb, _ := gocv.IMEncode(fileExt, mat)
 	src, _, _ := image.Decode(bytes.NewReader(srcb))
 	return src
 }
 
-// 標準入力から draw.Image に変換して返す
+// 標準入力から draw.Image に変換して返す。
 func getDst() draw.Image {
 	s, _ := png.Decode(os.Stdin)
 	dst, _ := s.(draw.Image)
 	return dst
 }
 
-// 白色箇所をだけを使ったmaskを作る
+// 白色箇所をだけを使ったmaskを作る。
 func white2mask(src image.Image) image.Image {
 	bounds := src.Bounds()
 	dst := image.NewRGBA(bounds)
@@ -662,22 +663,22 @@ GoCVのドキュメントはexampleが充実しているとはいえ、全ての
 
 //list[contours][OpenCVを使った画像の輪郭抽出と合成][go]{
 func main() {
-	// 画像を読み込んでグレイスケール化
+	// 画像を読み込んでグレイスケール化。
 	cvtSrc := gocv.IMRead("./src/gopher.png", gocv.IMReadColor)
 	gray := gocv.NewMatWithSize(460, 460, gocv.MatTypeCV64F)
 	gocv.CvtColor(cvtSrc, &gray, gocv.ColorBGRToGray)
 
-	// 二値化
+	// 二値化。
 	thresholdDst := gocv.NewMatWithSize(460, 460, gocv.MatTypeCV64F)
 	gocv.Threshold(gray, &thresholdDst, 205, 255, gocv.ThresholdBinaryInv)
 
-	// 輪郭抽出
+	// 輪郭抽出。
 	points := gocv.FindContours(thresholdDst,
 		gocv.RetrievalExternal,
 		gocv.ChainApproxSimple,
 	)
 
-	// 輪廓抽出結果からマスクの準備
+	// 輪廓抽出結果からマスクの準備。
 	gocv.DrawContours(
 		&thresholdDst, points, -1,
 		color.RGBA{255, 255, 255, 255}, -1
@@ -688,10 +689,10 @@ func main() {
 	src := matToImage(gocv.PNGFileExt, cvtSrc)
 	r := src.Bounds()
 
-	// 背景画像所得
+	// 背景画像所得。
 	dst := getDst()
 
-	// 合成
+	// 合成。
 	draw.DrawMask(dst, r, src, image.Pt(0, 0), mask, image.Pt(0, 0), draw.Over)
 	png.Encode(os.Stdout, dst)
 }
@@ -705,7 +706,7 @@ func main() {
 func CvtColor(src Mat, dst *Mat, code ColorConversionCode)
 //}
 
-@<code>{gocv.Threshold}関数(@<list>{threshold})では画像の2値化を行なっています。引数に渡す閾値(@<code>{thresh})によってどの画素値を境に2値化するか決定します。今回は画像に合わせて最適な閾値を決定しました。ThresholdTypeは閾値の種類です。@<code>{gocv.ThresholdBinaryInv}は閾値を超えた箇所は白に、他はmaxvalueに変換するthresholdTypeです。
+@<code>{gocv.Threshold}関数(@<list>{threshold})では画像の2値化を行なっています。引数に渡す閾値(@<code>{thresh})によってどの画素値を境に2値化するか決定します。今回は画像に合わせて最適な閾値を決定しました。@<code>{ThresholdType}は閾値の種類です。@<code>{gocv.ThresholdBinaryInv}は閾値を超えた箇所は白に、他は@<code>{maxvalue}に変換する@<code>{thresholdType}です。
 
 //list[threshold][gocv.Threshold][go]{
 func Threshold(
