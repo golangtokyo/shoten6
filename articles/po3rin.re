@@ -2,7 +2,8 @@
 
 == はじめに
 
-初めましてpo3rinです。業務ではGo言語をメインに使って開発しています。この章ではGoによる画像処理&画像解析の方法を紹介します。1節では入門から始まり、2節では標準パッケージのみを使った画像リサイズの方法を紹介します。3節では画像や文字の合成の方法を紹介し、4節では更に突っ込んでOpenCVを使った顔認識や輪郭抽出などの方法を紹介します。初めての方でもこの章を読み終える頃には、Goでエレガントに画像を扱えるようになっていることでしょう。ソースコードは全て私のGitHubリポジトリ@<fn>{repo}に置いてあるので参考にどうぞ。
+初めましてpo3rinです。業務ではGoをメインに使って開発しています。この章ではGoによる画像処理&画像解析の方法を紹介します。3.1節では入門から始まり、3.2節では標準パッケージのみを使った画像リサイズの実装方法を紹介します。3.3節では画像や文字の合成の方法を紹介し、4.3節では更に突っ込んでOpenCVを使った顔認識や輪郭抽出などの方法を紹介します。初めての方でもこの章を読み終える頃には、Goでエレガントに画像を扱えるようになっていることでしょう。ソースコードは全て私のGitHubリポジトリ@<fn>{repo}に置いてあるので参考にどうぞ。
+
 //footnote[repo][https://github.com/po3rin/go-image-manipulation]
 
 === 今回使う素材画像について
@@ -70,7 +71,7 @@ RGBAとは、ディスプレイ画面で色を表現するために用いられ�
 ===[/column]
 
 @<code>{image.Image}インターフェースの実装@<fn>{image-code}を@<list>{image_Image}でみてみましょう。今回使った3つのメソッドを持つインターフェースになっています。先ほど確認したように、それぞれのメソッドは画像の基本的な情報を返します。
-//footnote[image-cod][https://github.com/golang/go/blob/go1.12.1/src/image/image.go#L36]
+//footnote[image-code][https://github.com/golang/go/blob/go1.12.1/src/image/image.go#L36]
 
 //list[image_Image][image.Imageインターフェースの実装][go]{
 type Image interface {
@@ -183,7 +184,7 @@ func Lerp(f PosDependFunc, a, b float64, ps Points) float64 {
 lerpパッケージを使って新しい関数を2つ作成します。1つ目は近傍点の座標と@<m>{\alpha}や@<m>{\beta}などのパラメータを計算する関数。もう一つはRGBAのいずれか1つを抽出する関数@<m>{f}を返す関数です。なぜ2つ目の関数が必要かというと、Lerpは今回RGBAそれぞれの値に対して実行します。つまり関数@<m>{f}を4種類用意する必要があります。initGetOneColorFuncは4つの関数@<m>{f}を生成するプロセスを一つにまとめただけです。
 
 //list[innnerfunc][画像リサイズに使う関数][go]{
-// getLerpParam 1軸に対して、Lerpで使うパラメータと近傍点をdstの座標と拡大縮小比率から所得する関数
+// getLerpParam 1軸に対して、Lerpで使うパラメータと近傍点をdstの座標と拡大縮小比率から所得する関数。
 func getLerpParam(dstPos int, ratio float64) (int, int, float64) {
 	// 拡大前の座標の所得 (拡大後の座標 / リサイズ比率)
 	v1float := float64(dstPos) / ratio
