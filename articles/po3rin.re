@@ -1,8 +1,8 @@
 = Goによる画像処理&画像解析
 
-== はじめに
+=={3_1} はじめに
 
-初めましてpo3rinです。業務ではGoをメインに使って開発しています。この章ではGoによる画像処理&画像解析の方法を紹介します。3.1節では入門から始まり、3.2節では標準パッケージのみを使った画像リサイズの実装方法を紹介します。3.3節では画像や文字の合成の方法を紹介し、4.3節では更に突っ込んでOpenCVを使った顔認識や輪郭抽出などの方法を紹介します。初めての方でもこの章を読み終える頃には、Goでエレガントに画像を扱えるようになっていることでしょう。ソースコードは全て私のGitHubリポジトリ@<fn>{repo}に置いてあるので参考にどうぞ。
+初めましてpo3rinです。業務ではGoをメインに使って開発しています。この章ではGoによる画像処理&画像解析の方法を紹介します。画像処理の入門はもちろん、標準パッケージのみを使った画像リサイズの実装や、画像や文字を合成する方法を紹介し、最後にはOpenCVを使った顔認識や輪郭抽出の実装を紹介します。Goでエレガントに画像を扱えるようになっていることでしょう。ソースコードは全て私のGitHubリポジトリ@<fn>{repo}に置いてあるので参考にどうぞ。
 
 //footnote[repo][https://github.com/po3rin/go-image-manipulation]
 
@@ -17,7 +17,7 @@
 
 また、今回の章で使用するダウンロードデータを皆さんが金銭の発生する二次利用として利用してしまうと法律的にアウトなのでご了承ください。
 
-== imageパッケージの基本を押さえよう
+=={3_2} imageパッケージの基本を押さえよう
 
 まずはGoで画像を扱う際の中心になるimageパッケージの基本を押さえましょう。このタイミングで@tottieさんのGopherくんのイラスト(@<img>{po3rin-tottie-gopher})をダウンロードしておいてください。
 
@@ -70,7 +70,7 @@ RGBAとは、ディスプレイ画面で色を表現するために用いられ�
 
 ===[/column]
 
-@<code>{image.Image}インターフェースの実装@<fn>{image-code}を@<list>{image_Image}でみてみましょう。今回使った3つのメソッドを持つインターフェースになっています。先ほど確認したように、それぞれのメソッドは画像の基本的な情報を返します。
+@<code>{image.Image}インターフェースの実装@<fn>{image-code}をみてみましょう。@<list>{getimg}で使った3つのメソッドを持つインターフェースになっています。
 //footnote[image-code][https://github.com/golang/go/blob/go1.12.1/src/image/image.go#L36]
 
 //list[image_Image][image.Imageインターフェースの実装][go]{
@@ -81,7 +81,8 @@ type Image interface {
 }
 //}
 
-Goではpng,jpeg,gifの画像フォーマットが標準パッケージでサポートされています。1点注意があり、画像フォーマットのパッケージの関数などを使わない場合でも@<code>{import _ image/png}のようにブランクインポートで画像フォーマットに対応するパッケージを読み込んでおかないと実行時にエラーが発生します。理由を探る為に@<code>{image/png/reader.go}をみてみましょう。
+Goではpng、jpeg、gifの画像フォーマットが標準パッケージでサポートされています。1点注意があり、画像フォーマットのパッケージの関数などを使わない場合でも@<code>{import _ image/png}のようにブランクインポートで画像フォーマットに対応するパッケージを読み込んでおかないと実行時にエラーが発生します。理由を探る為に@<code>{image/png/reader.go}@<fn>{init-code}をみてみましょう。
+//footnote[init-code][https://github.com/golang/go/blob/master/src/image/png/reader.go#L1030]
 
 //list[image_register][image.RegisterFormatによる画像フォーマット登録][go]{
 func init() {
@@ -131,7 +132,7 @@ $ go run main.go < gopher.png > gray_gopher.png
 //image[po3rin-gray_gopher][可愛いGopherくんのグレー画像][scale=0.4]{
 //}
 
-== 線形補間法を実装して画像リサイズの仕組みを学ぼう
+=={3_3} 線形補間法を実装して画像リサイズの仕組みを学ぼう
 
 今までの知識を使って少し骨のある実装をしてみましょう。画像を指定倍率でリサイズできる@<code>{Resize}関数を提供する@<code>{resize}パッケージを実装します。今回は標準パッケージのみで実装していく事で、Goにおける実装方法だけでなく、画像の拡大縮小の仕組みも学びます。
 
@@ -271,7 +272,7 @@ func Resize(img image.Image, xRatio, yRatio float64) image.Image {
 
 おめでとうございます！標準パッケージだけで画像リサイズ関数を作る事ができました！今回の実装を経て、画像処理アルゴリズムをGoでどのように実装するかを掴んで頂ければ幸いです。
 
-== 画像やテキストを合成してOGP画像を生成してみよう
+=={3_4} 画像やテキストを合成してOGP画像を生成してみよう
 
 ここからは更に実践的な内容に入りましょう。ブログを作成する際にOGP画像を作成するのってメンドくさいですよね。この節では画像やテキストの合成をGoで行い、OGP画像を自動で生成できるようにしましょう。今回は@<img>{po3rin-ogp}のようなOGP画像生成を目指します。
 
@@ -369,11 +370,11 @@ func Draw(dst Image, r image.Rectangle, src image.Image, sp image.Point, op Op) 
 }
 //}
 
-では@<code>{draw.DrawMask}関数@<fn>{drawmask-code}の引数をみていきましょう。
+では@<code>{draw.DrawMask}関数@<fn>{drawmask-code}の引数をみていきましょう。@<fn>{newline}
 //footnote[drawmask-code][https://github.com/golang/go/blob/go1.12.1/src/image/draw/draw.go#L106]
+//footnote[newline][紙面の都合上改行をしています]
 
 //list[drawmask][draw.DrawMaskの実装][go]{
-// 長い為改行
 func DrawMask(
 	dst Image, r image.Rectangle, src image.Image, sp image.Point,
 	mask image.Image, mp image.Point, op Op
@@ -453,7 +454,7 @@ $ go run main.go < go.png > result.png
 
 これでOGP画像を生成するコードができました！テキストとsrc画像を標準入力やフラッグで渡せるようにすれば、いろんなブログのOGPがすぐに作れそうです。
 
-== OpenCVを使って画像解析をやってみよう
+=={3_5} OpenCVを使って画像解析をやってみよう
 
 ここからはOpenCV@<fn>{opencv}を駆使して画像に対して更に応用的な処理を行ってみましょう。
 //footnote[opencv][OpenCV https://opencv.org/]
