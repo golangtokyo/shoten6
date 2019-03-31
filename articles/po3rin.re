@@ -69,7 +69,8 @@ RGBAとは、ディスプレイ画面で色を表現するために用いられ�
 
 ===[/column]
 
-@<code>{image.Image}インターフェースの実装を@<list>{image_Image}でみてみましょう。今回使った3つのメソッドを持つインターフェースになっています。先ほど確認したように、それぞれのメソッドは画像の基本的な情報を返します。
+@<code>{image.Image}インターフェースの実装@<fn>{image-code}を@<list>{image_Image}でみてみましょう。今回使った3つのメソッドを持つインターフェースになっています。先ほど確認したように、それぞれのメソッドは画像の基本的な情報を返します。
+//footnote[image-cod][https://github.com/golang/go/blob/go1.12.1/src/image/image.go#L36]
 
 //list[image_Image][image.Imageインターフェースの実装][go]{
 type Image interface {
@@ -327,7 +328,7 @@ func GetCover() image.Image {
 }
 //}
 
-@<code>{NewRect}はdstとmaskを作る為の関数です。1画素ごとに引数で受け取った色をセットしているだけです。そして、GetCoverとGetSrcはそれぞれ合成する画像を読み込んでOGP画像の大きさに合うようにリサイズしています。@<list>{getimagefunc}で作った関数を使って画像合成をしてみましょう。
+@<code>{NewRect}関数はdstとmaskを作る為の関数です。1画素ごとに引数で受け取った色をセットしているだけです。そして、GetCoverとGetSrcはそれぞれ合成する画像を読み込んでOGP画像の大きさに合うようにリサイズしています。@<list>{getimagefunc}で作った関数を使って画像合成をしてみましょう。
 
 //list[synthesis][画像の合成][go]{
 
@@ -357,7 +358,7 @@ func main() {
 }
 //}
 
-ここで使っている@<code>{image/draw}パッケージは画像合成機能を提供しています。@<code>{draw.Draw}@<fn>{draw-code}の実装を見ると単に@<code>{draw.DrawMask}をラップした関数になっています。
+ここで使っている@<code>{image/draw}パッケージは画像合成機能を提供しています。@<code>{draw.Draw}関数@<fn>{draw-code}の実装を見ると単に@<code>{draw.DrawMask}関数をラップした関数になっています。
 //footnote[draw-code][https://github.com/golang/go/blob/go1.12.1/src/image/draw/draw.go#L100]
 
 //list[draw][draw.Drawの実装][go]{
@@ -367,7 +368,7 @@ func Draw(dst Image, r image.Rectangle, src image.Image, sp image.Point, op Op) 
 }
 //}
 
-では@<code>{draw.DrawMask}@<fn>{drawmask-code}の引数をみていきましょう。
+では@<code>{draw.DrawMask}関数@<fn>{drawmask-code}の引数をみていきましょう。
 //footnote[drawmask-code][https://github.com/golang/go/blob/go1.12.1/src/image/draw/draw.go#L106]
 
 //list[drawmask][draw.DrawMaskの実装][go]{
@@ -378,7 +379,7 @@ func DrawMask(
 )
 //}
 
-@<code>{draw.DrawMask}は、srcをmaskでマスキングしてdst内に配置します。srcの中で合成に使う位置がsp、maskの中でマスキングに使う位置がmpです。opはPorter-Duffコンポジションの演算子で、２枚の画像を合成する際にそれぞれのピクセルについてどのように処理するかを規定したものです。Goでは二つの演算子を提供しており、今回はOver演算子を使って指定されたdstの上にastを重ねています。もう1つのSrc演算子は、dstの内容に関係なく完全に上書きします(op=draw.Srcにして実行してみると結果が変わります)。基本的にSrc演算子の方が高速なので、合成の際にはSrc演算子が使えないか検討しましょう。
+@<code>{draw.DrawMask}関数は、srcをmaskでマスキングしてdst内に配置します。srcの中で合成に使う位置がsp、maskの中でマスキングに使う位置がmpです。opはPorter-Duffコンポジションの演算子で、２枚の画像を合成する際にそれぞれのピクセルについてどのように処理するかを規定したものです。Goでは二つの演算子を提供しており、今回はOver演算子を使って指定されたdstの上にastを重ねています。もう1つのSrc演算子は、dstの内容に関係なく完全に上書きします(op=draw.Srcにして実行してみると結果が変わります)。基本的にSrc演算子の方が高速なので、合成の際にはSrc演算子が使えないか検討しましょう。
 
 ===[column] src,mask,dstの意味とそれぞれのPointについて
 
@@ -424,10 +425,11 @@ func DrawText(img draw.Image, text string) image.Image {
 		_, _ = c.DrawString(text, pt)
 	}
 	return img
+
 }
 //}
 
-分かりにくいのは@<code>{freetype.Context.SetSrc}です。なぜここで真っ白な画像を渡しているのでしょうか。@<code>{freetype.Context.DrawString}の実装を見ると、内部で@<code>{draw.DrawMask}が実行されています。ここでは@<code>{src}に対しテキストの形のマスクをかけています。その為、@<code>{src}の色がそのままテキストの色になっているのです。それでは先ほど画像合成をしていた@<code>{main}関数にこの関数を差し込みましょう。
+分かりにくいのは@<code>{freetype.Context.SetSrc}メソッドです。なぜここで真っ白な画像を渡しているのでしょうか。@<code>{freetype.Context.DrawString}メソッドの実装を見ると、内部で@<code>{draw.DrawMask}関数が実行されています。ここでは@<code>{src}に対しテキストの形のマスクをかけています。その為、@<code>{src}の色がそのままテキストの色になっているのです。それでは先ほど画像合成をしていた@<code>{main}関数にこの関数を差し込みましょう。
 
 //list[textdraw][テキストの合成][go]{
 func main() {
@@ -567,7 +569,7 @@ func main() {
 }
 //}
 
-Mat形式はn次元の密集した数値のシングルチャネルまたはマルチチャネル配列を表し、OpenCVで主に使われるデータ構造です。Mat形式のデータを@<code>{classifier.DetectMultiScale}に渡せば、顔部分を囲った範囲である image.Rectangle型(もうすでにお馴染み) のスライスが返ってきます。後は@<code>{gocv.Rectangle}関数で顔部分を囲み、画像として出力します。@<list>{face-detect}を実行してみると@<img>{po3rin-facedetect}のような画像ができるはずです。
+Mat形式はn次元の密集した数値のシングルチャネルまたはマルチチャネル配列を表し、OpenCVで主に使われるデータ構造です。Mat形式のデータを@<code>{classifier.DetectMultiScale}メソッドに渡せば、顔部分を囲った範囲である @<code>{image.Rectangle}型(もうすでにお馴染み) のスライスが返ってきます。後は@<code>{gocv.Rectangle}関数で顔部分を囲み、画像として出力します。@<list>{face-detect}を実行してみると@<img>{po3rin-facedetect}のような画像ができるはずです。
 
 //image[po3rin-facedetect][GoCVを使った顔認識][scale=0.5]{
 //}
