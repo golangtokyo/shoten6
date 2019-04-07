@@ -1,119 +1,122 @@
-= vimでGoを快適に書く
+= VimでGoを快適に書く
 
 == はじめに
-始めまして、ゴリラです。
+はじめまして、ゴリラです。
 
-普段はvimを使ってGoを書くことが趣味で、@<br>{}
-主にTUIツールを作ることが多いです。@<br>{}
+普段はVimを使ってGoを書くことが趣味で@<fn>{tui}TUIツールを作るのが好きです。
+本章ではVimでGoを快適に書くための環境構築から設定やプラグインなどを紹介していきます。
 
-本章ではvimでGoを快適に書くための環境構築から、vimの設定やTips、プラグインなどを紹介していきます。@<br>{}
+//footnote[tui][Text User Interface]
 
-なお、@<br>{}
-本章は以下の環境をもとに解説していきます。
+なお、本章は@<table>{env}をもとに解説していきます。
 
-@<b>{OS}@<br>{}
-Mac Mojave
+//table[env][環境]{
+OS	Mac Mojave 10.14.4（18E226）
+Vim	8.1.950
+//}
 
-@<b>{vim}@<br>{}
-8.1.950
+また、本章の中に{HOME}が複数回出ますが、@<table>{home}の通りに読み替えてください。
 
-== vimの基本
+//table[home][HOMEの定義]{
+OS	パス
+----------------------------
+Mac	/Users/yourname
+Linux	/home/yourname
+Windows	C:\Users\yourname
+//}
+
+== Vimの基本
 
 === モードについて
+Vimにはモードと言う概念があり、基本的にモードを切り替えながらコーディングします。
+各モードでできる操作は大まか@<table>{mode}になります。
 
-vimにはモードと言う概念があります。@<br>{}
-基本モードを切り替えながらコーディングします。@<br>{}
-それぞれのモードでできることは大まかに以下になります。
-
- * @<b>{normal mode}
- ** カーソル移動
- ** 文字削除
- ** 文字コピー
- ** 文字貼り付け
- ** undo・redo
- * @<b>{insert mode}
- ** 文字の入力
- ** 文字貼り付け
- * @<b>{visual mode}
- ** 範囲選択
- ** 選択範囲を削除
- ** 選択範囲をコピー
- * @<b>{commandline mode}
- ** ファイルの保存
- ** 画面分割
- ** 置換
- * @<b>{search mode}
- ** 検索
+//table[mode][モード]{
+モード		操作
+----------------------------
+normal	カーソル移動
+.	文字削除
+.	文字コピー
+.	文字貼り付け
+.	アンドゥ
+.	リドゥ
+insert	文字入力
+.	文字削除
+.	文字貼り付け
+visual	範囲選択
+.	選択範囲を削除
+.	選択範囲をコピー
+.	範囲選択の解除
+commandline	ファイルの保存
+.	Vim終了
+.	画面分割
+.	置換
+search	検索
+//}
 
 === 基本操作
-vimを触ったことがない方は、こちらの基本操作を覚えておきましょう。@<br>{}
-基本操作をわかっている方は飛ばして頂いて問題ありません。@<br>{}
-下記に記載がなければ、基本normal modeでの操作になります。
+基本操作をわかっている方は飛ばして頂いて問題ありません。
+Vimを触ったことがない方は@<table>{operations}の基本操作を覚えておきましょう。
 
-==== カーソル移動
-カーソル移動は左（h）,右（l）,下（j）,上（k）になります。
-
-==== コピー
-`yy/Y`で行をコピーします。
-
-==== 切り取り
-`dd/D`で行を切り取ることができます。@<br>{}
-切り取った行を貼り付けることができます。
-
-==== 貼り付け
-`p/P`でコピーした内容を貼り付けることができます。
-
-==== undo・redo
-`u` でundo、 `Ctrl + r` でredoになります。
-
-==== 入力
-`i`を入力するとinsert modeに切替わり、入力が可能になります。@<br>{}
-insert modeで`esc`で抜けることができます。
-
-==== 選択
-`v`もしくは`V`でvisual modeになります。@<br>{}
-このモードでは範囲選択ができ、選択した範囲に対して`y/Y/d/D/p/P`と行ったオペレーションが可能です。
-
-==== 検索
-`/`で検索モードになり、入力した文字を検索できます。@<br>{}
-デフォルトでは検索結果をハイライトしないため、オプションで有効にする必要があります。@<br>{}
-オプションについてはオススメvimrc設定で紹介します。
-
-==== ファイル保存
-`:`を入力すると、commandline modeに切り替わります。@<br>{}
-`:`を入力したあとにつけてwを入力すると現在開いたファイルの変更がファイルに書き込まれ保存されます。
-
-==== 置換
-`:%s/置換対象/置換文字/g`で置換できます。@<br>{}
-`/`も置換対象の場合は`\/`でエスケープしなければのはご注意ください。
-
-==== 終了
-`:q`を入力するとvimを終了できます。@<br>{}
-変更した内容を保存せずに、強制終了したい場合は`q!`でできます。
+//table[operations][操作]{
+モード	操作	キー	補足
+----------------------------
+normal	カーソル移動(左)	h
+.	カーソル移動(右)	l
+.	カーソル移動(上)	k
+.	カーソル移動(下)	j
+.	行コピー	yy, Y
+.	削除	dd, D
+.	貼り付け	p, P
+.	アンドゥ	u
+.	リドゥ		Ctrl+r
+.	visual modeに移る	v	範囲選択
+.	.	V	行単位で範囲選択
+.	.	Ctrl+v	矩形範囲選択
+.	insert modeに移る	i
+.	search modeに移る	/
+.	commandline modeに移る	:
+insert	normal modeに戻る	esc, Ctrl+c
+visual	選択した範囲をコピーする	y
+.	選択した範囲を削除する	d
+.	選択した範囲を削除して貼付け	p
+.	normal modeに移る	esc, Ctrl+C
+commandline	保存	w
+.	Vimを終了する	q
+.	保存してVimを終了	wq
+.	保存せずVimを終了	q!
+.	文字を置換する	%s/置換対象/置換文字/g
+//}
 
 == vim-go
-vimではプラグインを導入して機能を拡張することができます。@<br>{}
-Goを書く時に、欠かせないプラグインとしてvim-goというのがあります。@<br>{}
-定義ジャンプ、補完、linterなどの機能が詰まった素晴らしいプラグインです。@<br>{}
+Vimではプラグインを導入して機能を拡張することができます。
+Goを書くときに欠かせないプラグインとしてvim-go@<fn>{vim-go}があります。
+定義ジャンプ、補完、linterなどの便利な機能があります。
+
+//footnote[vim-go][https://github.com/fatih/vim-go]
+
 === 導入
-vimではプラグインマネージャを使用してプラグインを管理することが一般的です。@<br>{}
-ここでは、筆者が使用しているdein.vimというプラグインマネージャをもとに解説していきます。@<br>{}
-なお、他のプラグインマネージャも同様に導入することが可能です。@<br>{}
+Vimでは一般的にプラグインマネージャを使用してプラグインを管理します。
+ここでは筆者が使用しているdein.vim@<fn>{dein.vim}というプラグインマネージャをもとに解説していきます。
+
+なお、他のプラグインマネージャでも同様にプラグインを導入することが可能です。
+
+//footnote[dein.vim][https://github.com/Shougo/dein.vim] 
 
 ==== vim-goの導入
-dein.vimの導入については、$HOME/.vimrcに以下の部分を先頭に追記してください。@<br>{}
-なお、導入はgitが必要なので事前にインストールしておいてください。
+導入はGitが必要なので事前にインストールしておいてください。
+vim-goを導入するため、{HOME}/.vim/dein.tomlという名前のファイルを作成して@<list>{add_vim-go}を先頭に追加してください。
 
-===== $HOME/.vim/dein.tomlにファイルを作成して以下を先頭に追加してください。
-//emlist[go][toml]{
+//list[add_vim-go][dein.toml]{
 # Go
 [[plugins]]
 repo = 'fatih/vim-go'
 on_ft = 'go'
 //}
 
-===== dein.vimを導入するため、以下を$HOME/.vimrcの先頭に追加してください。
-//emlist[dein][vimscript]{
+dein.vimを導入するため、@<list>{install_dein.vim}を{HOME}/.vimrcの先頭に追加してください。
+
+//list[install_dein.vim][vimrc]{
 " install dir
 let s:dein_dir = expand('~/.cache/dein')
 let s:dein_repo_dir = s:dein_dir . '/repos/github.com/Shougo/dein.vim'
@@ -154,172 +157,333 @@ syntax enable
 filetype plugin indent on
 //}
 
-上記を追加後、vimを立ち上げるとdein.vimとvim-goのインストールが開始され、しばらくすると終わります。@<br>{}
-vim-goのインストール完了後、外部コマンドをインストールする必要があるため、@<br>{}
-以下のコマンドをvimのcommand line modeで@<code>{:GoInstallBinaries}実行してください。
+追加後、Vimを立ち上げるとdein.vimとvim-goのインストールが開始され、しばらくすると終わります。
+vim-goのインストール完了後、外部コマンドをインストールする必要があるため、
+Vimのcommandline modeで@<code>{:GoInstallBinaries}実行してください。
 
 これでvim-goのインストールは完了です。
 
 == vim-goコマンド
-vim-goのオススメコマンドやキーバインド、設定を紹介していきます。@<br>{}
+vim-goのコマンドやキーマッピング、設定を紹介していきます。
 
 === 定義ジャンプ
-@<code>{Ctrl+]}もしくは@<code>{gd}でカーソル上にある定義へジャンプすることができます。@<br>{}
-@<code>{Ctrl+]}はvim-go側が用意したキーマッピングです。@<br>{}
-プラグイン内部でGoDefコマンドを実行しているだけです。@<br>{}
-なので@<code>{:GoDef}を実行しても同じ事ができます。@<br>{}
-ジャンプ履歴は記録されるので、前の場所に戻りたい時は@<code>{Ctrl+t}で戻ることができます。
+@<code>{Ctrl+]}もしくは@<code>{gd}でカーソル上の識別子の定義元へジャンプすることができます。
+ジャンプ履歴は記録されるので@<code>{Ctrl+t}で前の場所に戻ることができます。
 
-=== フォーマット
-@<code>{GoFmt}を実行すると、ソースコードが整形されます。@<br>{}
-vim-goではファイル保存時に自動的にフォーマットしてくれるので、忘れても大丈夫です。
+=== 整形
+@<code>{:GoFmt}でソースコードを整形できます。
+vim-goではファイル保存時に自動整形するようになっています。
 
 === インポート
-@<code>{:GoImports}で構文解析して、必要なパッケージをimportしてくれたり、不要なパッケージを削除してくれます。@<br>{}
-また、以下の設定を$HOME/.vimrcに追加することでファイル保存時に自動実行するようになります。
+@<code>{:GoImports}で必要なパッケージをインポート、不要なパッケージを削除することができます。
+また、@<list>{set_go_fmt_command}の設定を{HOME}/.vimrcに追加することでファイル保存時に自動実行するようになります。
 
-//emlist[vimrc][vimscript]{
+//list[set_go_fmt_command][vimrc]{
 let g:go_fmt_command = "goimports"
 //}
 
 === linter
-以下の設定を$HOME/.vimrcに追加することで、ファイル保存時に自動でlinterをかけてくれます。
+@<list>{set_go_metalinter_autosave}の設定を{HOME}/.vimrcに追加することでファイル保存時に自動でlinterを実行することができます。
 
-//emlist[vimrc][vimscript]{
+//list[set_go_metalinter_autosave][vimrc]{
 let g:go_metalinter_autosave = 1
 //}
 
-デフォルトはGoLint,GoVet,GoErrCheckですが、
-指定したい場合は以下の設定を$HOME/.vimrcを追加してください。
+デフォルトは@<code>{GoLint}、@<code>{GoVet}、@<code>{GoErrCheck}が有効になっていますが、
+個別で指定したい場合は@<list>{set_go_metalinter_autosave_enabled}の設定を{HOME}/.vimrcを追加してlinterを指定してください。
 
-//emlist[vimrc][vimscript]{
-let g:go_metalinter_autosave_enabled = ['vet']
+//list[set_go_metalinter_autosave_enabled][vimrc]{
+" vet, golint, errcheckを個別指定する
+let g:go_metalinter_autosave_enabled = ['vet', 'golint']
 //}
 
-=== 関数移動
-@<code>{]]}で次の関数,@<code>{[[}で前の関数へ移動することができます。@<br>{}
+=== 関数(メソッド)間の移動
+@<code>{]]}で次の、@<code>{[[}で前の関数(メソッド)へ移動することができます。
+@<code>{N]]}、@<code>{N[[}のように数値を入力することで@<code>{]]}、@<code>{[[}を@<fn>{n}N回実行することもできます。
+
+//footnote[n][Nは数値です]
 
 === テキストオブジェクト
-関数内にカーソルを移動し、@<code>{dif}で関数の中身、@<code>{daf}で関数全体を削除できます。@<br>{}
-@<code>{yif}で関数の中身、@<code>{yaf}で関数全体をコピーできます。@<br>{}
+関数内にカーソルを置き、@<code>{dif}で関数の中身、@<code>{daf}で関数全体を削除できます。
+同様に@<code>{yif}で関数の中身、@<code>{yaf}で関数全体をコピーすることができます。
+関数全体のコピー、削除はコメントも含まれます。
 
 === タグの追加
-構造体のフィールドにカーソルを当てた状態で@<code>{:GoAddTags}でタグを追加することができます。@<br>{}
-引数がなければ、デフォルトはjsonタグが追加されますが、@<br>{}
-@<code>{:GoAddTags yaml toml}の様に引数を渡すことで複数のタグを追加することができます。@<br>{}
+構造体のフィールドにカーソルを置き、@<code>{:GoAddTags}で次のようにタグを追加することができます。
+
+//list[goaddtags_before][実行前]{
+type Gorilla struct {
+	name string
+	age  int
+}
+//}
+
+//list[goaddtags][実行後]{
+type Gorilla struct {
+	name string `json:"name"`
+	age  int    `json:"age"`
+}
+//}
+
+また、@<code>{:GoAddTags yaml toml}のように引数を渡すことで@<list>{goaddtags_yaml_toml}のように複数のタグを追加することもできます。
+
+//list[goaddtags][実行後]{
+type Gorilla struct {
+	name string `json:"name"`
+	age  int    `json:"age"`
+}
+//}
+
+
+//list[goaddtags_yaml_toml][実行後]{
+type Gorilla struct {
+	name string `json:"name" yaml:"name" toml:"name"`
+	age  int    `json:"age" yaml:"age" toml:"age"`
+}
+//}
 
 === タグの削除
-構造体のフォールドにカーソルを当てた状態で@<code>{:GoRemoveTag}で構造体のタグを削除することができます。@<br>{}
-引数を渡すことで、指定したタグを削除することもできます。
+次のように構造体のフォールドにカーソルを当てた状態で@<code>{:GoRemoveTag}で構造体のタグを削除することができます。
 
-=== godocを開く
-@<code>{:GoDocBrowser}でカーソル上の定義のgodocを開くことができます。@<br>{}
-vim上でgodocを確認したい場合は@<code>{K}で確認することもできます。@<br>{}
-筆者は後者のが好みです。
+//list[removetag_before][実行前]{
+type Gorilla struct {
+	name string `json:"name" yaml:"name" toml:"name"`
+	age  int    `json:"age" yaml:"age" toml:"age"`
+}
+//}
+
+//list[removetag][実行後]{
+type Gorilla struct {
+	name string `json:"name" yaml:"name" toml:"name"`
+	age  int    `json:"age" yaml:"age" toml:"age"`
+}
+//}
+
+また、@<code>{:GoRemoveTag toml}のように引数を渡すことで、次のように指定したキーのタグを削除することもできます。
+
+//list[removetag][実行前]{
+type Gorilla struct {
+	name string `json:"name" yaml:"name" toml:"name"`
+	age  int    `json:"age" yaml:"age" toml:"age"`
+}
+//}
+
+//list[removetag][実行後]{
+type Gorilla struct {
+	name string `json:"name" yaml:"name"`
+	age  int    `json:"age" yaml:"age"`
+}
+//}
+
+=== GoDocを開く
+@<code>{:GoDocBrowser}でカーソル上の定義のGoDocを開くことができます。
+Vim上でGoDocを確認したい場合は@<code>{K}で確認できます。
 
 === インターフェイス実装一覧
-@<code>{:GoImplements}でカーソル上にあるインターフェイスを実装した構造体を探すことができます。@<br>{}
-見つかった構造体はLocation Listに表示されるので、そこから選択してEnterを押すことでジャンプできます。
+インターフェイスにカーソルを置き@<code>{:GoImplements}で実装一覧を検索することができます。
+検索結果を選択してEnterを押すことで実装にジャンプできます。
 
 === 構造体リテラルをゼロ値で初期化
-@<code>{:FillStruct}で構造体のをゼロ値で初期化( T{} ) --> ( T{A: 1, B: 2, C: 3})することができます。@<br>{}
-どんなキーがあったか忘れたときなどに使うと便利です。
+@<code>{:GoFillStruct}で次のように構造体のをゼロ値で初期化することができます。
+どんなフィールドがあったか忘れたときなどに使うと便利です。
 
-=== キー付き構造体リテラル
-@<code>{:GoKeyify}でキーなしの構造体リテラル( T{1, 2, 3} )をキー付き構造体リテラル( T{A: 1, B: 2, C: 3} )にすることができます@<br>{}
-リファクタリングするときに便利です。
+//list[gofillstruct_before][実行前]{
+type Gorilla struct {
+	name string
+	age int
+}
+
+func NewGorilla() Gorilla {
+	return Gorilla{}
+}
+//}
+
+//list[gofillstruct][実行後]{
+type Gorilla struct {
+	name string
+	age int
+}
+
+func NewGorilla() Gorilla {
+	return Gorilla{
+		name: "",
+		age:  0,
+	}
+}
+//}
+
+=== フィールド名付き構造体リテラル
+@<code>{:GoKeyify}で次のようにフィールド名なしの構造体リテラルにフィールド名を追加することができます。
+構造体の定義をリファクタリングするときに便利です。
+
+//list[gokeyify_before][実行前]{
+type Gorilla struct {
+	name string
+	age int
+}
+
+func NewGorilla() Gorilla {
+	return Gorilla{"gorilla", 26}
+}
+//}
+
+//list[gokeyify][実行後]{
+type Gorilla struct {
+	name string
+	age int
+}
+
+func NewGorilla() Gorilla {
+	return Gorilla{
+		name: "gorilla",
+		age:  26,
+	}
+}
+//}
 
 === リネーム
-@<code>{:GoRename}でカーソルにある変数や関数が使われている箇所をすべてリネームできます。@<br>{}
+@<code>{:GoRename}でカーソルを当てた変数や関数が使われている箇所をすべてリネームできます。
 
 === インターフェイスのメソッドスタブ生成
-@<code>{:GoImpl}でカーソルを当てた構造体に、指定したインターフェイスの関数を自動生成できます。@<br>{}
-インターフェイスを指定するとき、$GOPATH/src以降のパス.インターフェイス名で指定する必要があります。@<br>{}
-ただし、Goの標準パッケージの場合はインターフェイス名のみで問題ないです。@<br>{}
-大量にメソッドが定義されている場合、コマンド一つでスタブをつくれるのは魅力的ですね。
+@<code>{:GoImpl}で次のようにカーソルを当てたTに指定したインターフェイスのメソッドスタブを生成できます。
+インターフェイスを指定するとき、インポートパス.インターフェイス名で指定する必要があります。
+ただし、Goの標準パッケージの場合はインターフェイス名のみで問題ありません。
+テスト用にモックを手早く作る場合に便利でしょう。
+
+//list[goimpl_before][実行前]{
+type T struct{}
+//}
+
+//list[goimpl][実行後]{
+// io.ReadWriteCloserを指定した場合
+type T struct{}
+
+func (t *T) Read(p []byte) (n int, err error) {
+	panic("not implemented")
+}
+
+func (t *T) Write(p []byte) (n int, err error) {
+	panic("not implemented")
+}
+
+func (t *T) Close() error {
+	panic("not implemented")
+}
+
+//}
 
 === コードシェア
-@<code>{:GoPlay}でソースをGoplaygroundにアップロードできます。@<br>{}
-ローカルで書いたサンプルをシェアする時に便利です。
+@<code>{:GoPlay}でコードをThe Go Playgroundにアップロードできます。
+Vimで書いたコードをThe Go Playground上でシェアする場合に便利です。
 
 === テスト実行
-@<code>{:GoTest}でテストを実行することができます。@<br>{}
-また、指定したテスト関数だけを実行したい場合はカーソルを関数に当てた状態で、@<code>{:GoTestFunc}で実行することで確認できます。
+@<code>{:GoTest}でテストを実行することができます。
+また、指定したテスト関数だけを実行したい場合はカーソルをテスト関数に当てた状態で@<code>{:GoTestFunc}で実行することができます。
 
 === カバレッジ
-@<code>{:GoCoverage}でテストを実行し、カバレッジを確認することができます。@<br>{}
-ブラウザでカバレッジを確認したい場合は@<code>{:GoCoverageBrowser}を実行することで確認できます。
+@<code>{:GoCoverage}でテストを実行し、カバレッジを確認することができます。
+ブラウザでカバレッジを確認したい場合は@<code>{:GoCoverageBrowser}で確認できます。
 
 === スニペット
-$HOME/.vim/dein.tomlに以下のプラグインを追加して、vimを再起動してください。
+{HOME}/.vim/dein.tomlに@<list>{add_ultisnips}のプラグインを追加して、Vimを再起動してください。
 
-//emlist[ultisnips][toml]{
+//list[add_ultisnips][dein.toml]{
 # snippets
 [[plugins]]
 repo = 'SirVer/ultisnips'
 //}
 
-vim-goが用意しているスニペット一覧はこちらを参照してください。@<br>{}
-https://github.com/fatih/vim-go/blob/master/gosnippets/UltiSnips/go.snippets
+vim-goが用意しているスニペット一覧@<fn>{snipps}を参照してください。
+
+//footnote[snipps][https://github.com/fatih/vim-go/blob/master/gosnippets/UltiSnips/go.snippets,]
 
 === 補完
-vim-goを導入すれば、Ctrl+x + Ctrl+oで補完できます。@<br>{}
-執筆時点でvim-goはLSPに対応したので、Go公式のgoplsを使用して補完と定義ジャンプが可能になっています。@<br>{}
-goplsを使用したい場合、以下の設定を$HOME/.vimrcに追加してください。
+vim-goを導入することで@<code>{Ctrl+x + Ctrl+o}で補完できます。
+執筆時点@<fn>{now}でvim-goはLSP@<fn>{lsp}に対応したので、Go公式の@<fn>{gopls}goplsを使用して補完と定義ジャンプが可能になっています。
+goplsを使用したい場合、@<list>{set_go_def_mode}の設定を{HOME}/.vimrcに追加してください。
 
-//emlist[vimrc][vimscript]{
+//list[set_go_def_mode][vimrc]{
 let g:go_def_mode = 'gopls'
 //}
 
-== vim編集時短術
-vim-goを使用することで、vimでGoを快適にかける様になりました。@<br>{}
-vimにはもっとたくさんの機能がありますが、ここでは便利機能をすこし紹介していきます。@<br>{}
+//footnote[lsp][Language Server Protocol(LSP)]
+//footnote[gopls][https://github.com/golang/go/wiki/gopls]
+//footnote[now][2019/04/08]
+
+== Vim編集時短術
+vim-goを使用することで、VimでGoを快適にかけるようになりました。
+Vimにはもっとたくさんの機能がありますが、ここでは便利機能をすこし紹介していきます。
 なお、記述がなければnormal modeでの操作になります。
 
 === コメントアウト
-Ctrl + v で矩形選択できるようになります。@<br>{}
-矩形選択でコメントアウト範囲を選択したのち、`I//Esc`を入力することで選択した範囲をコメントアウトできます。
+@<code>{Ctrl+v}で矩形選択できるようになります。
+矩形選択でコメントアウト範囲を選択したのち、@<code>{I//Esc}で選択した範囲をコメントアウトできます。
 
 === 構造体の中身をコピー or 削除
-構造体の中身をコピーしたい場合、カーソルを構造体内に置き、`yi{` でコピー `di{` で削除できます。
+構造体の中身をコピーしたい場合、カーソルを構造体内に置き、@<code>{yi{}でコピー、@<code>{di{}で削除できます。
 
 === 関数の引数をコピー or　削除
-関数の引数をコピーしたい場合、カーソルを()内に置き、 `yib` でコピー、 `dib` で削除できます。
+関数の引数をコピーしたい場合、カーソルを()内に置き、 @<code>{yib}でコピー、@<code>{dib}で削除できます。
 
 === 前後の空白にジャンプする
-`{` で上、 `}` で下の空白の部分にカーソルをジャンプさせることができます。
+@<code>{{}で上、@<code>{\}}で下の空白の部分にカーソルをジャンプさせることができます。
 
 === 改行してinsert mode
-`o` で下に一行改行してinsert modeになります.@<br>{}
-`O` で上に一行改行になります。
+@<code>{o}で下に一行改行してinsert modeになります.
+@<code>{O}で上に一行改行になります。
 
 === セッション
-現在の作業(開いているファイル、画面分割、タブ)状態を保存するためのセッション機能があります。@<br>{}
-一旦PCを再起動するときなど、何かしらの理由で作業を中断せざるを得ない場合に使うと便利です。@<br>{}
-@<code>{:mksession xxx.vim}でセッションファイルを保存します。@<br>{}
-保存したセッションファイルを@<code>{vim -S xxx.vim}で復元することができます。@<br>{}
-もしくはvimを開いた状態なら@<code>{:source xxx.vim}で復元できます。
+現在の作業(開いているファイル、画面分割、タブ)状態を保存するためのセッション機能があります。
+一旦パソコンを再起動するときなど、何かしらの理由で作業を中断せざるを得ない場合に使うと便利です。
+@<code>{:mksession xxx.vim}でセッションファイルを保存します。
+保存したセッションファイルを@<code>{vim -S xxx.vim}で復元することができます。
+またはVimを開いた状態であれば@<code>{:source xxx.vim}で復元することもできます。
 
 === 単語を修正
-`IsGorilla` という関数名があって、それを `IsHuman` に修正したい場合、@<br>{}
-カーソルをGにおいた状態でcwでGorillaを削除してinsert modeになるのでそこでHumanを入力することでサクッと修正できます。
+@<code>{ciw}で単語を削除してinsert modeに移ることができます。
+次のように@<code>{ciw}実行後にWorldを入力することで単語を変更することができます。
+
+//list[cw][実行前]{
+// |がカーソルの位置
+Hello |Gorilla
+//}
+
+//list[cw][実行後]{
+// |がカーソルの位置
+Hello World|
+//}
 
 === 単語検索
-検索したい単語にカーソルを当てた状態で開く`*`でファイル検索できます。@<br>{}
-nで次、Nで前の検索結果にジャンプします。
+単語にカーソルを当てた状態で@<code>{*}で検索できます。
+@<code>{n}で次、@<code>{N}で前の検索結果にジャンプします。
 
 === 画面分割
-@<code>{:vs}で水平分割、@<code>{:sp}で垂直分割できます。@<br>{}
-また、@<code>{:vsp gorilla.go}というふうに引数を渡すことで分割したウィンドウで指定したファイルを開くことができます。
+@<code>{:vs}で水平分割、@<code>{:sp}で垂直分割できます。
+また、@<code>{:vsp gorilla.go}のように引数を渡すことでファイルを分割した画面で開くことができます。
+
+=== タブ
+@<code>{:tabnew}でタブを新規作成することができます。
+画面分割同様、@<code>{:tabnew gorilla.go}のように引数を渡すことで指定したファイルをタブで開くことができます。
+
+また、@<code>{gt}もしくは@<code>{gT}でタブを切り替える事ができます。
 
 == おまけ
-=== オススメvimrc設定
-これは入れておけという設定をすこし紹介していきます。
-設定したらもっと便利になります。
+=== オススメVimrc設定
+オススメの設定をすこし紹介していきます。
+@<list>{settings_vimrc}を{HOME}/.vimrcに追加することで少しVimが使いやすくなると思います。
 
-//emlist[vimrc][vimscript]{
+//list[settings_vimrc][vimrc]{
+" 文字コード
+set encoding=utf-8
+set fileencodings=utf-8,iso-2022-jp,euc-jp,sjis
+set fileformats=unix,dos,mac
+
 " シンタックスを有効にする
 syntax enable
+
+" ファイル形式別プラグインとインデントを有効にする
+" プラグインを使用するには設定する必要がある
+filetype plugin indent on
 
 " バックスペースとCtrl+hで削除を有効にする
 set backspace=2
@@ -351,14 +515,56 @@ set cursorline
 " wildmenuを有効にする
 set wildmenu
 set wildmode=full
+
+" undoの保存先
+" 事前にディレクトリを作成しておく必要がある
+if has('persistent_undo')
+  set undodir=~/.vim/undo
+  set undofile
+endif
+
+" カーソルラインの位置を保存する
+if has("autocmd")
+    autocmd BufReadPost *
+    \ if line("'\"") > 0 && line ("'\"") <= line("$") |
+    \   exe "normal! g'\"" |
+    \ endif
+endif
+
+" grepした結果をquickfixに表示する
+augroup grepwindow
+    autocmd!
+    au QuickFixCmdPost *grep* cwindow
+augroup END
+
+" 矩形選択時に文字の無いところまで選択範囲を広げる
+set virtualedit=block
+
+" 行先頭と行末
+map H ^
+map L $
+
+" visual時に選択行を移動
+vnoremap <C-j> :m '>+1<CR>gv
+vnoremap <C-k> :m '<-2<CR>gv
+
+" 上下の空白に移動
+nnoremap <C-j> }
+nnoremap <C-k> {
+
+" 検索でvery magicを使用する
+" `("`と言った記号をエスケープせずに検索できる
+nnoremap /  /\v
+
+" ハイライトを削除する
+nnoremap <Esc><Esc> :nohlsearch<CR>
 //}
 
 === オススメプラグイン
-個人的にオススメのプラグインを紹介します。@<br>{}
-以下の設定を$HOME/.vim/dein.tomlに追加して、vimを再起動してください。
+オススメのプラグインを紹介します。
+@<list>{plugins}の設定を{HOME}/.vim/dein.tomlに追加して、Vimを再起動してください。
 
-//emlist[go][toml]{
-# Goを書くならこれ一択
+//list[plugins][vimrc]{
 [[plugins]]
 repo = 'fatih/vim-go'
 on_ft = 'go'
@@ -379,7 +585,7 @@ repo = 'cohama/lexima.vim'
 [[plugins]]
 repo = 'simeji/winresizer'
 
-# ステータスバーをかっこよくしてくれる
+# ステータスバーカスタマイズ
 [[plugins]]
 repo = 'itchyny/lightline.vim'
 hook_add = '''
@@ -416,10 +622,9 @@ repo = 'skanehira/vsession'
 repo = 'markonm/traces.vim'
 //}
 
+== おわりに
+本章ではVimでGoを快適に書くためについて紹介しました。
+まだまだVimにはたくさん便利な機能がありますので、気になる方はぜひ調べてみてください。
 
-== まとめ
-本章ではvimでGoを快適に書くためについて紹介しました。
-まだまだvimにはたくさん便利な機能がありますので、気になる方はぜひ調べてみてください。
-
-vimは慣れてしまえばとても快適にコーディングすることができますので、
+Vimは慣れてしまえばとても快適にコーディングすることができますので、
 ぜひ慣れてコーディングスピードを上げていきましょう。
