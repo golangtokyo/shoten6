@@ -282,7 +282,7 @@ func Resize(img image.Image, xRatio, yRatio float64) image.Image {
 
 === 画像の合成
 
-今回、画像の合成においては@<img>{po3rin-synthesis-flow}のようなフローを踏みます。背景画像にマスクをかけて@<code>{dst}に合成し、Goのロゴをその上から@<code>{dst}に合成します。矢印に紐づいている関数の意味は後ほど説明します。
+今回、画像の合成においては@<img>{po3rin-synthesis-flow}のような手順を踏みます。背景画像にマスクをかけて@<code>{dst}に合成し、Goのロゴをその上から@<code>{dst}に合成します。矢印に紐づいている関数の意味は後ほど説明します。
 
 //image[po3rin-synthesis-flow][dstに画像を合成するフロー][scale=0.8]{
 //}
@@ -297,7 +297,7 @@ $ curl -o go.png \
 https://s3-ap-northeast-1.amazonaws.com/po3rin-golangtokyo/img/go.png
 //}
 
-では必要な素材を準備する関数を作りましょう。必要なのは@<code>{src}(Goのロゴ)と@<code>{cover}(背景画像)と@<code>{mask}(背景画像をマスキングする画像)と@<code>{dst}(合成を受ける画像)です。画像はそれぞれOGP画像の大きさに合うように前節で実装したリサイズ関数を使いましょう。前節の実装を飛ばした方は、@<code>{github.com/po3rin/resize}パッケージとして全く同じリサイズ機能を提供するパッケージを用意したのそちらを使いましょう。
+では必要な素材を準備する関数を作りましょう。必要なのは@<code>{src}(Goのロゴ)と@<code>{cover}(背景画像)と@<code>{mask}(背景画像をマスキングする画像)と@<code>{dst}(合成を受ける画像)です。画像はそれぞれOGP画像の大きさに合うように前節で実装したリサイズ関数を使いましょう。前節の実装を飛ばした方は、@<code>{github.com/po3rin/resize}パッケージとして全く同じリサイズ機能を提供するパッケージを用意したのでそちらを使いましょう。
 
 //list[getimagefunc][必要な画像を返す関数群][go]{
 // NewRect 指定色で塗りつぶした画像を生成する。
@@ -331,7 +331,7 @@ func GetCover() image.Image {
 }
 //}
 
-@<code>{NewRect}関数はdstとmaskを作る為の関数です。1画素ごとに引数で受け取った色をセットしているだけです。そして、GetCoverとGetSrcはそれぞれ合成する画像を読み込んでOGP画像の大きさに合うようにリサイズしています。@<list>{getimagefunc}で作った関数を使って画像合成をしてみましょう。
+@<code>{NewRect}関数はdstとmaskを作る為の関数です。1画素ごとに引数で受け取った色をセットしているだけです。そして、@<code>{GetCover}と@<code>{GetSrc}はそれぞれ合成する画像を読み込んでOGP画像の大きさに合うようにリサイズしています。@<list>{getimagefunc}で作った関数を使って画像合成をしてみましょう。
 
 //list[synthesis][画像の合成][go]{
 
@@ -382,7 +382,7 @@ func DrawMask(
 )
 //}
 
-@<code>{draw.DrawMask}関数は、srcをmaskでマスキングしてdst内に配置します。srcの中で合成に使う位置がsp、maskの中でマスキングに使う位置がmpです。opはPorter-Duffコンポジションの演算子で、２枚の画像を合成する際にそれぞれのピクセルについてどのように処理するかを規定したものです。Goでは二つの演算子を提供しており、今回はOver演算子を使って指定されたdstの上にastを重ねています。もう1つのSrc演算子は、dstの内容に関係なく完全に上書きします(op=draw.Srcにして実行してみると結果が変わります)。基本的にSrc演算子の方が高速なので、合成の際にはSrc演算子が使えないか検討しましょう。
+@<code>{draw.DrawMask}関数は、@<code>{src}を@<code>{mask}でマスキングしてdst内に配置します。@<code>{src}の中で合成に使う位置が@<code>{sp}、@<code>{mask}の中でマスキングに使う位置が@<code>{mp}です。@<code>{op}はPorter-Duffコンポジションの演算子で、２枚の画像を合成する際にそれぞれのピクセルについてどのように処理するかを規定したものです。Goでは二つの演算子を提供しており、今回はOver演算子を使って指定されたdstの上に@<code>{src}を重ねています。もう1つのSrc演算子は、@<code>{dst}の内容に関係なく@<code>{src}で完全に上書きします(@<code>{op=draw.Src}にして実行してみると結果が変わります)。基本的にSrc演算子の方が高速なので、合成の際にはSrc演算子が使えないか検討しましょう。
 
 ===[column] src,mask,dstの意味とそれぞれのPointについて
 
@@ -432,7 +432,7 @@ func DrawText(img draw.Image, text string) image.Image {
 }
 //}
 
-分かりにくいのは@<code>{freetype.Context.SetSrc}メソッドです。なぜここで真っ白な画像を渡しているのでしょうか。@<code>{freetype.Context.DrawString}メソッドの実装を見ると、内部で@<code>{draw.DrawMask}関数が実行されています。ここでは@<code>{src}に対しテキストの形のマスクをかけています。その為、@<code>{src}の色がそのままテキストの色になっているのです。それでは先ほど画像合成をしていた@<code>{main}関数にこの関数を差し込みましょう。
+分かりにくいのは@<code>{freetype.Context.SetSrc}メソッドです。なぜここで真っ白な画像を渡しているのでしょうか。答えは白色の文字を合成したいからです。@<code>{freetype.Context.DrawString}メソッドの実装を見ると、内部で@<code>{draw.DrawMask}関数が実行されています。ここでは@<code>{src}に対しテキストの形のマスクをかけています。その為、@<code>{src}の色がそのままテキストの色になっているのです。それでは先ほど画像合成をしていた@<code>{main}関数にこの関数を差し込みましょう。
 
 //list[textdraw][テキストの合成][go]{
 func main() {
