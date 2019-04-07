@@ -1,26 +1,79 @@
-= ユニットテストの考え方と実現するためのGoのテスト技法
+= 費用対効果の高いユニットテストを実現するためのGoのテスト基礎
 
 == はじめに
 
-はじめまして、hgsgtkです。業務ではサーバーサイドエンジニアとして、GoやPHPをメインに使ってアプリケーションの開発をしています。この章では、ユニットテストについて扱います。テストを書くことは、業務でのアプリケーション開発にとって重要な要素のひとつです。ユニットテストの書き方についての記事は多数ありますが、「なぜその方法が良いのか」という考え方についての理解の場は少ないです。そのため、本章では、「どのようなテストが効果的か」という点とそれをどう実現するかについて説明します。この章を読むことで、普段何気なく書くテストについて立ち止まって考える機会になることを期待しています。
+はじめまして、hgsgtk@<fn>{hgsgtk}です。業務ではサーバーサイドエンジニアとして、GoやPHPをメインに使ってアプリケーションの開発をしています。
 
-== Goのテストの基本
-Goでは、 @<code>{go test} というサブコマンドが用意されています。これは、ある種の規約に従って構成されるGoパッケージに対するテストドライバです。
+//footnote[hgsgtk][@<href>{https://twitter.com/hgsgtk}]
+
+この章では、ユニットテストについて扱います。ユニットテストを書くことは、業務でのアプリケーション開発にとって重要な要素のひとつです。ユニットテストの書き方についての記事は多数ありますが、「なぜその方法が良いのか」という考え方についての理解の場は少ないです。そのため、本章では、「どのようなテストが効果的か」という点とそれをどう実現するかについて説明します。この章を読むことで、普段何気なく書くテストについて立ち止まって考える機会になることを期待しています。
+
+== Goのユニットテストの基本
+まず、Goのユニットテスト作成の基本を抑えましょう。Goでは、 単体テストを行うためのコマンドとして、@<code>{go test} というサブコマンドが用意されています。@<code>{_test.go}というサフィックスの付いたファイルを対象にしてテストを実行します。
+
+//list[goTestExecution][go testによるテスト実行][]{
+% go test github.com/hgsgtk/go-snippets/testing-codes/fizzbuzz
+ok  	fizzbuzz	0.006s
+//}
 
 @<code>{_test.go} で終わるファイルは、@<code>{go build} によってビルドした場合、ビルド対象となりません。一方、 @<code>{go test} でビルドされた場合には対象パッケージの一部としてビルドされます。
 
-テストを作成するには、 @<code>{testing} パッケージをインポートしたファイルで次のシグネチャを持った関数を作成します。
+テストを作成するには、 testing パッケージをインポートしたファイルで次のシグネチャを持った関数を作成します。
 
-//source[sample_test.go]{
-  func TestName(t *testing.T) {
-    // ...
-  }
+//list[sampleTestGo][sample_test.go][go]{
+package sample_test
+
+import "testing"
+
+func TestName(t *testing.T) {
+	// ...
+}
 //}
 
-テスト関数名は、 @<code>{Test} で始め、以降の接頭辞 @<code>{Name} は大文字で始める必要があります。
+テスト関数名は、 @<code>{Test} で始め、以降の接頭辞 @<code>{Name} は大文字で始める必要があります。また、引数定義には、@<code>{*testing.T}を設定します。
 
-#@# TODO: 例えば、こういう関数ならこういうテストを書くのっていうのを書く
-#@# TODO: こういうふうにやったらこういう結果になってエラーレポーティングがかえってくるのよ
+ひとつサンプルを見てましょう。"hello" と返却する@<code>{SayHello()}という関数があるとします。
+//list[sampleHello][sample.go][go]{
+package sample
+
+func SayHello() string {
+	return "hello"
+}
+//}
+
+この場合、次のようなテストコードを作成することができます。
+
+//list[sampleTestHello][sample_test.go][go]{
+func TestSayHello(t *testing.T) {
+	want := "hello"
+  // SayHelloの戻り値が期待値とことなる場合エラーとして処理する
+	if got := sample.SayHello(); got != want {
+		t.Errorf("SayHello() = %#v, want %#v", got, want)
+	}
+}
+//}
+
+作成したテストを先程紹介した @<code>{go test} で実行するとテストが通ることが確認できます。
+
+//list[sampleTestExecution][作成したSayHelloに対するテストが通る][]{
+-> % go test -v github.com/hgsgtk/go-snippets/testing-codes/sample
+=== RUN   TestSayHello
+--- PASS: TestSayHello (0.00s)
+PASS
+ok  	github.com/hgsgtk/go-snippets/testing-codes/sample	0.007s
+//}
+
+このテストが失敗する場合は次のような出力結果が得られます。
+
+//list[sampleTestExecutionFailed][作成したSayHelloに対するテストが失敗する][]{
+-> % go test -v github.com/hgsgtk/go-snippets/testing-codes/sample
+--- FAIL: TestSayHello (0.00s)
+  sample_test.go:16: SayHello() = "hellox", want "hello"
+FAIL
+FAIL	github.com/hgsgtk/go-snippets/testing-codes/sample	0.008s
+//}
+
+ここまでが、Goのユニットテストを作る上での基礎知識になります。基本的にはこれまで紹介した知識で最低限のテストコードを作成できるようになります。
 
 == ユニットテストの考え方
 ユニットテストにおいて意識すべき考え方として、「費用対効果」という視点があります。
@@ -106,3 +159,5 @@ Goでは非常に広く使われているテストの技法として、表駆動
 xUTPでも、テストユーティリティを活用してテストの可読性を上げることをひとつの方法として説明されています。テストユーティリティには、Creation MethodとCustom Assertion Methodのふたつの種類があります。
 
 == おわりに
+
+本章では、費用対効果というユニットテストの考え方とGoのユニットテストの基礎を紹介しました。何か迷った際に、考え方・基礎を抑えておくことで判断にブレが少なくなります。
