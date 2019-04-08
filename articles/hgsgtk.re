@@ -239,28 +239,28 @@ Goの特徴的な言語仕様として、 アサーションが提供されて�
   	var num int
   	var want string
 
-  	num = 15
+    num = 15
   	want = "FizzBuzz"
-  	if got := fizzbuzz.GetMsg(num); want != got {
-  		t.Fatalf("GetMsg(%d) = %s, want %s", num, want, got)
+  	if got := fizzbuzz.GetMsg(num); got != want {
+  		t.Fatalf("GetMsg(%d) = %s, want %s", num, got, want)
   	}
 
   	num = 5
   	want = "Buzz"
-  	if got := fizzbuzz.GetMsg(num); want != got {
-  		t.Fatalf("GetMsg(%d) = %s, want %s", num, want, got)
+  	if got := fizzbuzz.GetMsg(num); got != want {
+  		t.Fatalf("GetMsg(%d) = %s, want %s", num, got, want)
   	}
 
   	num = 3
   	want = "Fizz"
-  	if got := fizzbuzz.GetMsg(num); want != got {
-  		t.Fatalf("GetMsg(%d) = %s, want %s", num, want, got)
+  	if got := fizzbuzz.GetMsg(num); got != want {
+  		t.Fatalf("GetMsg(%d) = %s, want %s", num, got, want)
   	}
 
   	num = 1
   	want = "1"
-  	if got := fizzbuzz.GetMsg(num); want != got {
-  		t.Fatalf("GetMsg(%d) = %s, want %s", num, want, got)
+  	if got := fizzbuzz.GetMsg(num); got != want {
+  		t.Fatalf("GetMsg(%d) = %s, want %s", num, got, want)
   	}
   }
 //}
@@ -293,7 +293,7 @@ Goの特徴的な言語仕様として、 アサーションが提供されて�
 //list[ExecuteTestFizzBuzzGetMsg][GetMsgの戻り値検証で失敗した場合（１）][]{
 === RUN   TestGetMsg
 --- FAIL: TestGetMsg (0.00s)
-    fizzbuzz_test.go:47: GetMsg(15) = FizzBuzz, want Buzz
+    fizzbuzz_test.go:47: GetMsg(15) = Buzz, want FizzBuzz
 FAIL
 //}
 
@@ -302,20 +302,48 @@ FAIL
 //list[ExecuteTestFizzBuzzGetMsgBetter][t.Errorfでハンドリングした場合のテスト結果][]{
 === RUN   TestGetMsg
 --- FAIL: TestGetMsg (0.00s)
-    fizzbuzz_test.go:47: GetMsg(15) = FizzBuzz, want Buzz
-    fizzbuzz_test.go:59: GetMsg(3) = Fizz, want 3
+    fizzbuzz_test.go:47: GetMsg(15) = Buzz, want FizzBuzz
+    fizzbuzz_test.go:59: GetMsg(3) = 3, want Fizz
 FAIL
 //}
 
 このように、適切なエラーハンドリングが行われておらず全てのエラーでクラッシュしていた場合、プログラマはエラーを直さない限り以降どのような結果が得られるかわかりません。一回の実行結果から得られる情報量がすくないため都度エラーを直しては次のエラーを調査するといった非効率的な方法でユニットテストをメンテナンスすることになります。プログラマ自身のユニットテストメンテナンスコストを鑑みても、適切なエラーハンドリングは重要です。
 
-== 表駆動テスト・サブテスト
-Goでは非常に広く使われているテストの技法として、表駆動（table-driven）テストというものがあります。例えば、次のようなテストコードになります。
+== テーブル駆動テスト・サブテスト
+Goでは非常に広く使われているテストの技法として、テーブル駆動テストというものがあります。@<list>{FizzBuzzGetMsg}をテーブル駆動テストで書いてみましょう。
 
-#@# TODO 表駆動テストの例
+//list[TestFizzBuzzGetMsgTableDriven][テーブル駆動テスト][go]{
+  func TestGetMsgTableDriven(t *testing.T) {
+  	tests := []struct {
+  		num  int
+  		want string
+  	}{
+  		{
+  			num:  15,
+  			want: "FizzBuzz",
+  		},
+  		{
+  			num:  5,
+  			want: "Buzz",
+  		},
+  		{
+  			num:  3,
+  			want: "Fizz",
+  		},
+  		{
+  			num:  1,
+  			want: "1",
+  		},
+  	}
+  	for _, tt := range tests {
+  		if got := fizzbuzz.GetMsg(tt.num); got != tt.want {
+  			t.Errorf("GetMsg(%d) = %s, want %s", tt.num, got, tt.want)
+  		}
+  	}
+  }
+//}
 
-テーブル駆動テストでは、必要に応じた新たな表の項目を追加するのが簡単であり、判定ロジックの複製の不要です。そのため、このテストに対して修正・追加したいプログラマの工数を最小限である維持コストの低いテストを実現する方法になります。合わせて、テストを読む際にも、対象関数のテストパターンが表にかかれているので可読性の高いドキュメンテーションとしての価値も高いテストとなります。
-判定ロジックの複製が不要な分、これまで説明してきた「適切なエラーハンドリング」・「適切なエラーレポート」に集中することができます。
+テーブル駆動テストでは、必要に応じた新たな表の項目を追加するのが簡単であり、判定ロジックの複製の不要です。そのため、このテストに対して修正・追加したいプログラマの工数を最小限である維持コストの低いテストを実現する方法になります。合わせて、テストを読む際にも、対象関数のテストパターンが表にかかれているので可読性の高いドキュメンテーションとしての価値も高いテストとなります。さらに、判定ロジックの複製が不要な分、これまで説明してきた「適切なエラーハンドリング」・「適切なエラーレポート」に集中することができます。
 
 == インターフェース・スタブ実装
 不安定なテスト（Fragile Test）が生まれてしまうことを避ける
