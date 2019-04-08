@@ -53,7 +53,7 @@ Offsetには３種類存在し
 
 というものがそれぞれあります。ここでCommit Offsetだけが分かりにくい概念かと思いますが、「ここまでは確実に読み込まれましたよ」ということを確定しているOffsetになります。
 
-ここまでのイメージをまとめると以下のようになります。
+ここまでのイメージをまとめると@<img>{syossan27-kafka-detail}のようになります。
 
 //image[syossan27-kafka-detail][イメージ図]{
 //}
@@ -107,11 +107,11 @@ Kafkaは高スループットかつ耐障害性において他のメッセージ
 筆者は実際にKafkaとGoを使ったシステムを構築する中で、かなり親和性は高いのでは？と考えております。  
 勿論、ベターな選択肢としてはJavaやScalaなどのJVM言語を使うのが賢明であると思いますが（clientが公式でサポートされているため）、Goに関しては非公式ライブラリであってもKafkaのバージョンアップについていけないということも無く、また言語特性として並列処理に長けているという点も多重Consumerでの処理の書きやすさに繋がっていると感じます。
 
-そんなGoとKafkaを使い、簡単なメッセージングシステムを組みながら分散メッセージの世界に入っていきましょう。バージョンはそれぞれGo v1.12、Kafka v2.2.0を用いて作成しますのでご注意ください。
+そんなGoとKafkaを使い、簡単なメッセージングシステムを組みながら分散メッセージの世界に入っていきましょう。バージョンはそれぞれGo v1.12、Kafka v2.2.0を用いて作成します。
 
 === 作成するシステムについて 
 
-今回は以下のようなイメージのシステムを構築していきたいと思います。
+今回は@<img>{syossan27-system-image}のようなイメージのシステムを構築していきたいと思います。
 
 //image[syossan27-system-image][イメージ図]{
 //}
@@ -144,12 +144,9 @@ kafka-goは、他２つのライブラリより後発のライブラリで、sar
 
 それでは、まずはKafka Brokerを立ち上げていきましょう。Kafka公式サイトのQuick Start（@<href>{https://kafka.apache.org/quickstart}）を見てBrokerを立ち上げるのも一つですが、wurstmeister/kafka-docker@<fn>{kafka-docker}という便利なプロダクトがあるのでこれを使っていきましょう。
 
-事前準備として適宜以下を行っておいてください。
+事前準備としてDockerのインストール・Docker Composeのインストールを行っておいてください。
 
- * Dockerのインストール
- * Docker Composeのインストール
-
-これらが完了しましたら準備完了です。次にkafka-dockerの環境構築をしていきます。
+次にkafka-dockerの環境構築をしていきます。
 
 //list[clone kafka-docker][kafka-dockerのclone][]{
 % git clone git@github.com:wurstmeister/kafka-docker.git
@@ -232,7 +229,7 @@ Partition: 2 Leader: 1001 Replicas: 1001,1003,1002 Isr: 1001,1003,1002
     --topic test --from-beginning
 //}
 
-これでtest topicを介したメッセージングの準備は出来ました。Producerを実行しているプロセスで何か文字を打ってみましょう。するとConsumerを実行しているプロセスにProducerで打った文字が表示されればKafka Brokerが正常に動いている証です。
+これでtest topicを介したメッセージングの準備は出来ました。Producerを実行しているプロセスで何か文字を打ってみましょう。Consumerを実行しているプロセスにProducerで打った文字が表示されればKafka Brokerが正常に動いている証です。
 
 //footnote[kafka-docker][@<href>{https://github.com/wurstmeister/kafka-docker}]
 
