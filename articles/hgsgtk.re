@@ -98,17 +98,145 @@ Goの特徴的な言語仕様として、 アサーションが提供されて�
 適切なエラーハンドリングについて、「致命的ではないエラーが発生した際にクラッシュさせずに処理を継続させることである」と説明されています。
 適切なエラーハンドリングを行うことは、費用対効果の高いテストを得るためにも非常に有用です。
 
-適切なエラーハンドリングを行うことによって、致命的ではないエラーである以上一回の実行で多くのエラーをプログラマはテストの失敗結果を得ることができます。もし、適切なエラーハンドリングが行われておらず全てのエラーでクラッシュしていた場合、プログラマはエラーを直さない限り以降どのような結果が得られるかわかりません。一回の実行結果から得られる情報量がすくないため都度エラーを直しては次のエラーを調査するといった非効率的な方法でユニットテストをメンテナンスすることになります。プログラマ自身のユニットテストメンテナンスコストを鑑みても、適切なエラーハンドリングは重要です。
+では、Goにおいて適切なエラーハンドリングを実現するためには、どのようにすればよいのでしょうか。Goでは testing パッケージが提供する @<code>{*T.Errorf}（@<code>{*T.Error}）・@<code>{*T.Fatalf}（@<code>{*T.Fatal}）というAPIが提供しています。それらを適切に使い分けることによって、適切なエラーハンドリングを実現します。
+
+@<code>{*T.Errorf}では、「対象の関数は失敗した」と記録されますが、実行は継続されます。それに対して、@<code>{*T.Fatalf}では、@<code>{*T.Errorf}と同様に「対象の関数は失敗した」ことを記録しますが、同時に実行を停止し、次のテストケースの実行へと移ります。
+よって、致命的なエラーに対するハンドリングは@<code>{*T.Fatalf}で行い、そうではないエラーに対するハンドリングは、@<code>{*T.Errorf}で行います。
+
+@<list>{GetNum}を
+//list[GetNum][sample.go][go]{
+  package sample
+
+  import (
+  	"strconv"
+
+  	"github.com/pkg/errors"
+  )
+
+  func GetNum(str string) (int, error) {
+  	num, err := strconv.Atoi(str)
+  	if err != nil {
+  		return 0, errors.Wrapf(err, "GetNum failed converting %#v", str)
+  	}
+  	return num, nil
+  }
+//}
+
+//list[TestGetNum][sample_test.go][go]{
+  func TestGetNum(t *testing.T) {
+  	str := "7"
+  	got, err := sample.GetNum(str)
+  	if err != nil {
+  		t.Fatalf("GetNum(%#v) caused unexpected error '%#v'", str, err)
+  	}
+  	want := 7
+  	if got != want {
+  		t.Errorf("GetNum(%#v) = %#v, want %#v", str, got, want)
+  	}
+  }
+//}
 
 ユニットテストにおいて致命的なエラーとして、テスト対象を実行・検証する前準備の処理の失敗が挙げられます。もしくは、例えば、http.Handlerをテストする際に擬似リクエストに失敗した場合、以降のテストを継続することができません。このような、処理継続が不可能なものに対してはテストをクラッシュさせることが効果的です。
 一方、致命的ではないエラーとしては、複数観点での検証のひとつの検証が失敗したケースなどが挙げられます。この場合、検証失敗によって以降の処理継続が不可能になるわけではありません。よって、この場合はテストをクラッシュさせないことが効果的になるわけです。
 
-では、Goにおいて適切なエラーハンドリングを実現するためには、どのようにすればよいのでしょうか。Goでは testing パッケージが提供する @<code>{*T.Errorf}（@<code>{*T.Error}）・@<code>{*T.Fatalf}（@<code>{*T.Fatal}）というAPIが提供しています。それらを適切に使い分けることによって、適切なエラーハンドリングを実現します。
+適切なエラーハンドリングを行うことによって、致命的ではないエラーである以上一回の実行で多くのエラーをプログラマはテストの失敗結果を得ることができます。適切なエラーハンドリングができていない例として次のようなテストコードが挙げられます。
 
-#@# TODO 致命的なエラーとそうではないエラーが混じっているようなテスト例を用意する
+//list[FizzBuzzGetMsg][fizzbuzz.go][go]{
+  package fizzbuzz
 
-@<code>{*T.Errorf}では、「対象の関数は失敗した」と記録されますが、実行は継続されます。それに対して、@<code>{*T.Fatalf}では、@<code>{*T.Errorf}と同様に「対象の関数は失敗した」ことを記録しますが、同時に実行を停止し、次のテストケースの実行へと移ります。
-よって、致命的なエラーに対するハンドリングは@<code>{*T.Fatalf}で行い、そうではないエラーに対するハンドリングは、@<code>{*T.Errorf}で行います。
+  import "strconv"
+
+  func GetMsg(num int) string {
+  	var res string
+  	switch {
+  	case num%15 == 0:
+  		res = "FizzBuzz"
+  	case num%5 == 0:
+  		res = "Buzz"
+  	case num%3 == 0:
+  		res = "Fizz"
+  	default:
+  		res = strconv.Itoa(num)
+  	}
+  	return res
+  }
+//}
+
+//list[TestFizzBuzzGetMsg][fizzbuzz_test.go][go]{
+func TestGetMsg2(t *testing.T) {
+	var num int
+	var want string
+
+	num = 15
+	want = "FizzBuzz"
+	if got := fizzbuzz.GetMsg(num); want != got {
+		t.Fatalf("GetMsg(%#v) = %#v, want %#v", num, want, got)
+	}
+
+	num = 5
+	want = "Buzz"
+	if got := fizzbuzz.GetMsg(num); want != got {
+		t.Fatalf("GetMsg(%#v) = %#v, want %#v", num, want, got)
+	}
+
+	num = 3
+	want = "Fizz"
+	if got := fizzbuzz.GetMsg(num); want != got {
+		t.Fatalf("GetMsg(%#v) = %#v, want %#v", num, want, got)
+	}
+
+	num = 1
+	want = "1"
+	if got := fizzbuzz.GetMsg(num); want != got {
+		t.Fatalf("GetMsg(%#v) = %#v, want %#v", num, want, got)
+	}
+}
+//}
+
+すべてのエラーを、@<code>{*T.Fatalf}でハンドリングでしています。テストが通っている間はこれでも問題ないように見えるかもしれません。では、次のように@<list>{FizzBuzzGetMsg}に２箇所バグが侵入してしまったケースを考えて未ましょう。
+
+//list[BuggFizzBuzzGetMsg][fizzbuzz.go][go]{
+  package fizzbuzz
+
+  import "strconv"
+
+  func GetMsg(num int) string {
+  	var res string
+  	switch {
+  	case num%16 == 0: // もともとは、num%15
+  		res = "FizzBuzz"
+  	case num%5 == 0:
+  		res = "Buzz"
+  	case num%4 == 0: // もともとは、num%3
+  		res = "Fizz"
+  	default:
+  		res = strconv.Itoa(num)
+  	}
+  	return res
+  }
+//}
+
+@<list>{BuggFizzBuzzGetMsg}の変更によって２箇所のバグが侵入しました。ここで、@<list>{TestFizzBuzzGetMsg}を実行してみましょう。
+
+//list[ExecuteTestFizzBuzzGetMsg][GetMsgの戻り値検証で失敗した場合（１）][]{
+=== RUN   TestGetMsg
+--- FAIL: TestGetMsg (0.00s)
+    fizzbuzz_test.go:47: GetMsg(15) = "FizzBuzz", want "Buzz"
+FAIL
+//}
+
+最初の１箇所のみがエラー結果として得られました。もう１つ侵入したバグに対するエラー結果を得ることはできませんでした。このテストケースではひとつの検証パターンの失敗を致命的なエラーとして扱いハンドリングしています。そのため、１回の実行によって得られる情報が少ないため、何度も修正しては現れるエラーに対して修正を繰り返さなければなりません。もし、@<code>{t.Errorf}でハンドリングしていた場合は次のように１回で多くの情報を得ることができます。
+
+//list[ExecuteTestFizzBuzzGetMsgBetter][t.Errorfでハンドリングした場合のテスト結果][]{
+=== RUN   TestGetMsg
+--- FAIL: TestGetMsg (0.00s)
+    fizzbuzz_test.go:47: GetMsg(15) = "FizzBuzz", want "Buzz"
+    fizzbuzz_test.go:59: GetMsg(3) = "Fizz", want "3"
+FAIL
+//}
+
+このように、適切なエラーハンドリングが行われておらず全てのエラーでクラッシュしていた場合、プログラマはエラーを直さない限り以降どのような結果が得られるかわかりません。一回の実行結果から得られる情報量がすくないため都度エラーを直しては次のエラーを調査するといった非効率的な方法でユニットテストをメンテナンスすることになります。プログラマ自身のユニットテストメンテナンスコストを鑑みても、適切なエラーハンドリングは重要です。
+
 
 == 適切なエラーレポート
 ユニットテストは維持するコストが発生すると「ユニットテストの考え方」にて説明しました。維持することを最小限にするためにもテストが失敗した際に「なぜ失敗したのか」について、それを見るプログラマに対してわかりやすいレポートである必要があります。そのため、適切なエラーレポートを行うことは非常に重要です。
