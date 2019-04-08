@@ -1,18 +1,23 @@
 = VimでGoを快適に書く
 
 == はじめに
-はじめまして、ゴリラです。
+はじめまして、都内でゴリラ.vim@<fn>{gorilla.vim}を主催しているVim好きなゴリです。
+普段はVimを使ってGoのコードを書くことが趣味でTUI@<fn>{tui}を作るのが好き、
+最近はDocker@<fn>{docker}のTUI Clientツール@<fn>{docui}を作っています。
 
-普段はVimを使ってGoを書くことが趣味で@<fn>{tui}TUIツールを作るのが好きです。
 本章ではVimでGoを快適に書くための環境構築から設定やプラグインなどを紹介していきます。
 
 //footnote[tui][Text User Interface]
+//footnote[gorilla.vim][https://gorillavim.connpass.com/]
+//footnote[docker][https://www.docker.com/]
+//footnote[docui][https://github.com/skanehira/docui]
 
 なお、本章は@<table>{env}をもとに解説していきます。
 
 //table[env][環境]{
 OS	Mac Mojave 10.14.4（18E226）
 Vim	8.1.950
+Go	go1.12 darwin/amd64
 //}
 
 また、本章の中に{HOME}が複数回出ますが、@<table>{home}の通りに読み替えてください。
@@ -29,7 +34,7 @@ Windows	C:\Users\yourname
 
 === モードについて
 Vimにはモードと言う概念があり、基本的にモードを切り替えながらコーディングします。
-各モードでできる操作は大まか@<table>{mode}になります。
+それぞれのモードでできる代表的な操作をまとめると@<table>{mode}のようになります。
 
 //table[mode][モード]{
 モード		操作
@@ -55,7 +60,6 @@ search	検索
 //}
 
 === 基本操作
-基本操作をわかっている方は飛ばして頂いて問題ありません。
 Vimを触ったことがない方は@<table>{operations}の基本操作を覚えておきましょう。
 
 //table[operations][操作]{
@@ -90,7 +94,7 @@ commandline	保存	w
 
 == vim-go
 Vimではプラグインを導入して機能を拡張することができます。
-Goを書くときに欠かせないプラグインとしてvim-go@<fn>{vim-go}があります。
+Goのコードを書くときに欠かせないプラグインとしてvim-go@<fn>{vim-go}があります。
 定義ジャンプ、補完、linterなどの便利な機能があります。
 
 //footnote[vim-go][https://github.com/fatih/vim-go]
@@ -104,8 +108,8 @@ Vimでは一般的にプラグインマネージャを使用してプラグイ�
 //footnote[dein.vim][https://github.com/Shougo/dein.vim] 
 
 ==== vim-goの導入
-導入はGitが必要なので事前にインストールしておいてください。
 vim-goを導入するため、{HOME}/.vim/dein.tomlという名前のファイルを作成して@<list>{add_vim-go}を先頭に追加してください。
+なお、Gitが必要なので事前にインストールしておいてください。
 
 //list[add_vim-go][dein.toml]{
 # Go
@@ -159,7 +163,7 @@ filetype plugin indent on
 
 追加後、Vimを立ち上げるとdein.vimとvim-goのインストールが開始され、しばらくすると終わります。
 vim-goのインストール完了後、外部コマンドをインストールする必要があるため、
-Vimのcommandline modeで@<code>{:GoInstallBinaries}実行してください。
+Vimのcommandline modeで@<code>{:GoInstallBinaries}を実行してください。
 
 これでvim-goのインストールは完了です。
 
@@ -209,7 +213,8 @@ let g:go_metalinter_autosave_enabled = ['vet', 'golint']
 関数全体のコピー、削除はコメントも含まれます。
 
 === タグの追加
-構造体のフィールドにカーソルを置き、@<code>{:GoAddTags}で次のようにタグを追加することができます。
+構造体のフィールドにカーソルを置き、@<code>{:GoAddTags}で@<list>{goaddtags_before}、@<list>{goaddtags}のようにタグを追加することができます。
+タグは@<list>{goaddtags}の@<code>{``}で囲っている部分で、@<code>{json}はタグのキーです。
 
 //list[goaddtags_before][実行前]{
 type Gorilla struct {
@@ -225,9 +230,9 @@ type Gorilla struct {
 }
 //}
 
-また、@<code>{:GoAddTags yaml toml}のように引数を渡すことで@<list>{goaddtags_yaml_toml}のように複数のタグを追加することもできます。
+また、@<code>{:GoAddTags yaml toml}のように引数を渡すことで@<list>{goaddtags_yaml_toml}のように複数のタグのキーを追加することもできます。
 
-//list[goaddtags][実行後]{
+//list[goaddtags][実行前]{
 type Gorilla struct {
 	name string `json:"name"`
 	age  int    `json:"age"`
@@ -243,7 +248,7 @@ type Gorilla struct {
 //}
 
 === タグの削除
-次のように構造体のフォールドにカーソルを当てた状態で@<code>{:GoRemoveTag}で構造体のタグを削除することができます。
+@<list>{removetag_before}、@<list>{removetag_before}のように構造体のフォールドにカーソルを当てた状態で@<code>{:GoRemoveTag}で構造体のタグを削除することができます。
 
 //list[removetag_before][実行前]{
 type Gorilla struct {
@@ -254,21 +259,21 @@ type Gorilla struct {
 
 //list[removetag][実行後]{
 type Gorilla struct {
-	name string `json:"name" yaml:"name" toml:"name"`
-	age  int    `json:"age" yaml:"age" toml:"age"`
+	name string
+	age  int
 }
 //}
 
-また、@<code>{:GoRemoveTag toml}のように引数を渡すことで、次のように指定したキーのタグを削除することもできます。
+また、@<code>{:GoRemoveTag toml}のように引数を渡すことで、@<list>{removetag_specific_before}、@<list>{removetag_specific}のように指定したタグのキーを削除することもできます。
 
-//list[removetag][実行前]{
+//list[removetag_specific_before][実行前]{
 type Gorilla struct {
 	name string `json:"name" yaml:"name" toml:"name"`
 	age  int    `json:"age" yaml:"age" toml:"age"`
 }
 //}
 
-//list[removetag][実行後]{
+//list[removetag_specific][実行後]{
 type Gorilla struct {
 	name string `json:"name" yaml:"name"`
 	age  int    `json:"age" yaml:"age"`
@@ -313,7 +318,7 @@ func NewGorilla() Gorilla {
 //}
 
 === フィールド名付き構造体リテラル
-@<code>{:GoKeyify}で次のようにフィールド名なしの構造体リテラルにフィールド名を追加することができます。
+@<code>{:GoKeyify}で@<list>{gokeyify_before}、@<list>{gokeyify}のようにフィールド名なしの構造体リテラルにフィールド名を追加することができます。
 構造体の定義をリファクタリングするときに便利です。
 
 //list[gokeyify_before][実行前]{
@@ -345,10 +350,10 @@ func NewGorilla() Gorilla {
 @<code>{:GoRename}でカーソルを当てた変数や関数が使われている箇所をすべてリネームできます。
 
 === インターフェイスのメソッドスタブ生成
-@<code>{:GoImpl}で次のようにカーソルを当てたTに指定したインターフェイスのメソッドスタブを生成できます。
-インターフェイスを指定するとき、インポートパス.インターフェイス名で指定する必要があります。
-ただし、Goの標準パッケージの場合はインターフェイス名のみで問題ありません。
-テスト用にモックを手早く作る場合に便利でしょう。
+@<code>{:GoImpl}で@<list>{goimpl_before}、@<list>{goimpl}のようにカーソルを当てた型@<code>{T}に指定したインターフェイスのメソッドスタブを生成できます。
+インターフェイスは、"インポートパス.インターフェイス名"の形で指定する必要があります。
+ただし、Goの標準パッケージで提供されるインタフェースはインポートパスを省いても構いません。
+この機能は、テスト用にモックを手早く作る場合に便利でしょう。
 
 //list[goimpl_before][実行前]{
 type T struct{}
@@ -373,8 +378,10 @@ func (t *T) Close() error {
 //}
 
 === コードシェア
-@<code>{:GoPlay}でコードをThe Go Playgroundにアップロードできます。
+@<code>{:GoPlay}でコードをThe Go Playground@<fn>{playground}にアップロードできます。
 Vimで書いたコードをThe Go Playground上でシェアする場合に便利です。
+
+//footnote[playground][https://play.golang.org/]
 
 === テスト実行
 @<code>{:GoTest}でテストを実行することができます。
@@ -399,7 +406,7 @@ vim-goが用意しているスニペット一覧@<fn>{snipps}を参照してく�
 
 === 補完
 vim-goを導入することで@<code>{Ctrl+x + Ctrl+o}で補完できます。
-執筆時点@<fn>{now}でvim-goはLSP@<fn>{lsp}に対応したので、Go公式の@<fn>{gopls}goplsを使用して補完と定義ジャンプが可能になっています。
+2019/04/08でvim-goはLSP@<fn>{lsp}に対応したので、Go公式の@<fn>{gopls}goplsを使用して補完と定義ジャンプが可能になっています。
 goplsを使用したい場合、@<list>{set_go_def_mode}の設定を{HOME}/.vimrcに追加してください。
 
 //list[set_go_def_mode][vimrc]{
@@ -408,7 +415,6 @@ let g:go_def_mode = 'gopls'
 
 //footnote[lsp][Language Server Protocol(LSP)]
 //footnote[gopls][https://github.com/golang/go/wiki/gopls]
-//footnote[now][2019/04/08]
 
 == Vim編集時短術
 vim-goを使用することで、VimでGoを快適にかけるようになりました。
@@ -419,10 +425,10 @@ Vimにはもっとたくさんの機能がありますが、ここでは便利�
 @<code>{Ctrl+v}で矩形選択できるようになります。
 矩形選択でコメントアウト範囲を選択したのち、@<code>{I//Esc}で選択した範囲をコメントアウトできます。
 
-=== 構造体の中身をコピー or 削除
+=== 構造体の中身をコピーと削除
 構造体の中身をコピーしたい場合、カーソルを構造体内に置き、@<code>{yi{}でコピー、@<code>{di{}で削除できます。
 
-=== 関数の引数をコピー or　削除
+=== 関数の引数をコピーと削除
 関数の引数をコピーしたい場合、カーソルを()内に置き、 @<code>{yib}でコピー、@<code>{dib}で削除できます。
 
 === 前後の空白にジャンプする
@@ -589,28 +595,28 @@ repo = 'simeji/winresizer'
 [[plugins]]
 repo = 'itchyny/lightline.vim'
 hook_add = '''
-	let g:lightline = {
-		\ 'colorscheme': 'wombat',
-		\ 'active': {
-			\ 'left': [ ['mode', 'paste'], ['readonly', 'filepath', 'modified'] ]
-				\ },
-		\ 'component_function':{
-			\ 'filepath': 'FilePath'
-				\ }
-		\ }
+  let g:lightline = {
+    \ 'colorscheme': 'wombat',
+    \ 'active': {
+        \ 'left': [ ['mode', 'paste'], ['readonly', 'filepath', 'modified'] ]
+        \ },
+    \ 'component_function':{
+        \ 'filepath': 'FilePath'
+        \ }
+    \ }
 
-	function! FilePath()
-		if winwidth(0) > 90
-			return expand("%:s")
-		else
-			return expand("%:t")
-		endif
-	endfunction
+  function! FilePath()
+    if winwidth(0) > 90
+      return expand("%:s")
+    else
+      return expand("%:t")
+    endif
+  endfunction
 
-	" # show statusbar
-	set laststatus=2
-	" # hide --INSERT--
-	set noshowmode
+  " # show statusbar
+  set laststatus=2
+  " # hide --INSERT--
+  set noshowmode
 '''
 
 # セッション管理プラグイン、fzfと合わせて使うと便利
