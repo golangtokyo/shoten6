@@ -12,16 +12,19 @@ Goのシンプルな思想に惚れ込み、Goあんこ@<fn>{gounco}という勉
 
 == Kafkaとは
 
-Kafkaとは、LinkedInで開発された分散メッセージングミドルウェアです。
-背景として、LinkedIn上での大量のアクティビティデータを機械学習やフィード画面に表示するためのデータパイプラインとして、
+Kafka（@<href>{https://kafka.apache.org/}）とは、LinkedInで開発された分散メッセージングミドルウェアです。
+背景として、LinkedIn@<fn>{linkedin}上での大量のアクティビティデータを機械学習やフィード画面に表示するためのデータパイプラインとして以下を目的として開発されました。
 
  * 高スループットによるリアルタイムストリーミング
  * パフォーマンスを損なわないメッセージストア
  * 耐障害性を保つための分散型システム
  * メッセージロストの防止
 
-を目的として開発されました。
-開発以前に、ActiveMQを使った本番環境での運用を試してみたようなのですが、メッセージキューがメモリ容量を超えると急激なパフォーマンス低下を起こしたり、負荷分散のアプローチが多数の問題により頓挫したりとかなりの苦労があったようです。
+開発以前に、ActiveMQ@<fn>{activemq}を使った本番環境での運用を試してみたようなのですが、メッセージキューがメモリ容量を超えると急激なパフォーマンス低下を起こしたり、負荷分散のアプローチが多数の問題により頓挫したりとかなりの苦労があったようです@<fn>{linkedin-paper}。
+
+//footnote[linkedin][@<href>{https://ja.wikipedia.org/wiki/LinkedIn}]
+//footnote[activemq][@<href>{http://activemq.apache.org/}]
+//footnote[linkedin-paper][1.2 Struggles with real-time infrastructureに記述: @<href>{http://sites.computer.org/debull/A12june/pipeline.pdf}]
 
 === Kafkaの基礎知識
 
@@ -29,7 +32,7 @@ Kafkaには分散メッセージングの仕組みとしてBroker、Topic、Part
 
 ==== Broker
 
-Brokerは１つのサーバにつき１つ存在する要素で、メッセージの受信・配信を担います。これらを複数でクラスタリングすることでメッセージングシステムの可用性を上げることが出来ます。実際に本番運用する際には必ずクラスタリングを行うようにしましょう。
+Brokerは１つのサーバにつき１つ存在する要素で、メッセージの受信・配信を担います。Brokerを稼働させているサーバ群をクラスタリングすることで、メッセージングシステムの可用性を上げることが出来ます。実際に本番運用する際には必ずクラスタリングを行うようにしましょう。
 
 ==== Topic
 
@@ -55,6 +58,10 @@ Offsetには３種類存在し
 //image[syossan27-kafka-detail][イメージ図]{
 //}
 
+また、Kafka以外の重要な要素としてZooKeeper@<fn>{zookeeper}というミドルウェアがあります。ZooKeeperは分散システムにおける設定情報やリソースの一元管理を担い、Kafkaでは主にTopicの構成（Partition数、Replicasのパスなど）の保持や、クラスタ内のブローカーのリストを保持等をしています。
+
+//footnote[zookeeper][@<href>{https://zookeeper.apache.org/}]
+
 === Kafkaで何が出来るのか？
 
 このように既存のメッセージングミドルウェアが実現出来なかった機能を持ち合わせているKafkaですが、一体Kafkaを使って何が出来るのでしょうか？  
@@ -62,19 +69,19 @@ Kafkaの公式ページで紹介されているユースケースをもとに幾
 
 ==== メッセージング
 
-ActiveMQやRabbitMQのようにオーソドックスなメッセージキューイングのブローカーとして使うことが出来ます。
-他のミドルウェアと比べ、Kafkaは高スループットかつ耐障害性に勝るため、秒間のメッセージ量が多い大企業では好んで使われます。
-ただし、耐障害性を高めるための各ノードへ向けたメッセージ複製という機構やブローカーを持つため、どうしてもそれを持たないミドルウェアにはスループットが敵わない面を持ちます。
+ActiveMQやRabbitMQ@<fn>{rabbitmq}のようにKafkaはオーソドックスなメッセージキューイングのブローカーとして使うことが出来ます。
+Kafkaは高スループットかつ耐障害性において他のメッセージングミドルウェアに勝るため、秒間のメッセージ量が多い大企業では好んで使われます。
+ただし、Kafkaは耐障害性を高めるため、クラスタ内の各ブローカーへ向けたメッセージ複製という機構を持つため、どうしてもそれを持たないミドルウェアにはスループットが敵わない面を持ちます。
 ですので、障害時にメッセージをある程度ロストしても構わない、かつ大量のメッセージを捌くスループットが欲しいという場合にはレプリケーション機構を持たないNATS@<fn>{nats}や、ブローカーレスであるnanomsg@<fn>{nanomsg}、ZeroMQ@<fn>{zeromq}に軍配が上がります。
 
 ==== アクティビティトラッキング
 
 元々LinkedInでアクティビティトラッキングのために開発されたため、勿論ですがアクティビティトラッキングに用いられることも多々あります。
 アクティビティトラッキングはユーザー数やトラッキング種別数にも依りますが、多量のデータを捌く必要性があるため高スループットが求められます。
-今まで述べた通り、Kafkaは高スループットを旨としておりLinkedInでは2012年の段階でピーク時に秒間17万メッセージをも捌いている実績があります。
+今まで述べた通り、Kafkaは高スループットを旨としておりLinkedInでは2012年の段階でピーク時に秒間17万メッセージをも捌いている実績があります@<fn>{linkedin-paper2}。
 現在のバージョンではさらなるパフォーマンス改善が施されているため、もっとメッセージを捌くことが出来ることでしょう。
 
-また、メッセージをHadoopなどデータウェアハウスへロードするためのconnectorが用意されているのも、好んで使われる一因だと思います。
+また、メッセージをHadoopなどデータウェアハウスへロードするためのKafka Connectと呼ばれるコネクタが用意されているのも、好んで使われる一因だと思います。
 
 ==== ストリーム処理
 
@@ -86,10 +93,12 @@ ActiveMQやRabbitMQのようにオーソドックスなメッセージキュー�
 イベントソーシングとは、イベントを永続化させ必要に応じてリプレイすることで状態を作り出すアーキテクチャで、永続させるイベントストアとしてKafkaを用いる事ができます。  
 注意点として、リプレイに必要なデータを保持するtopicの永続化に伴う適切なLog Compaction設定や、イベントをconsumeするtopic・リプライの中間データ用topicの適切な分割・設定などがあります。
 
+//footnote[Kafka-usecase][@<href>{https://Kafka.apache.org/uses}]
+//footnote[rabbitmq][@<href>{https://www.rabbitmq.com/}]
 //footnote[nats][@<href>{https://nats.io/}]
 //footnote[nanomsg][@<href>{https://github.com/nanomsg/nanomsg}]
 //footnote[zeromq][@<href>{http://zeromq.org/}]
-//footnote[Kafka-usecase][@<href>{https://Kafka.apache.org/uses}]
+//footnote[linkedin-paper2][2.2 Kafka Usage at LinkedInに記述: @<href>{http://sites.computer.org/debull/A12june/pipeline.pdf}]
 
 == Go × Kafka
 
@@ -98,7 +107,7 @@ ActiveMQやRabbitMQのようにオーソドックスなメッセージキュー�
 筆者は実際にKafkaとGoを使ったシステムを構築する中で、かなり親和性は高いのでは？と考えております。  
 勿論、ベターな選択肢としてはJavaやScalaなどのJVM言語を使うのが賢明であると思いますが（clientが公式でサポートされているため）、Goに関しては非公式ライブラリであってもKafkaのバージョンアップについていけないということも無く、また言語特性として並列処理に長けているという点も多重Consumerでの処理の書きやすさに繋がっていると感じます。
 
-そんなGoとKafkaを使い、簡単なメッセージングシステムを組みながら分散メッセージの世界に入っていきましょう。
+そんなGoとKafkaを使い、簡単なメッセージングシステムを組みながら分散メッセージの世界に入っていきましょう。バージョンはそれぞれGo v1.12、Kafka v2.2.0を用いて作成しますのでご注意ください。
 
 === 作成するシステムについて 
 
@@ -114,19 +123,26 @@ APIサーバ兼Producerの役割を持つアプリケーションを前段に置
 GoでKafkaを扱うライブラリは幾つか存在します。
 現在も活発に更新されている代表的なライブラリは以下の３つです。
 
- * Shopify/sarama
- * confluentinc/confluent-kafka-go
- * segmentio/kafka-go
+ * github.com/Shopify/sarama@<fn>{sarama}
+ * github.com/confluentinc/confluent-kafka-go@<fn>{confluent-kafka-go}
+ * github.com/segmentio/kafka-go@<fn>{kafka-go}
 
-Shopify/saramaはこの３つの中では一番Star数が多く、またポピュラーに使われているライブラリです。筆者もShopify/saramaを用いてシステム開発を行いましたが、特に問題もなく動いてくれました。またShopify, IBM, Herokuなど大手が使っていることからも信頼性が伺えます。
-confluentinc/confluent-kafka-goはlibrdkafkaというKafkaのCライブラリのラッパーという立ち位置になります。なので、このライブラリを使用する際にはlibrdkafkaのインストールが必要になりますが、それが原因でwindowsでのサポートはconfluent-kafka-goではされていないようです。
-segmentio/kafka-goは、他２つのライブラリより後発のライブラリで、saramaやconfluent-kafka-goの問題点を解決することを目的として開発されました。しかし、現状Kafkaの最新バージョンに追従していないように見受けられるので、他のライブラリを使うのが得策かと思います。
+saramaはこの３つの中では一番Star数が多く、またポピュラーに使われているライブラリです。筆者もsaramaを用いてシステム開発を行いましたが、特に問題もなく動きました。またShopify, IBM, Herokuなど大手が使っていることからも信頼性が伺えます@<fn>{sarama-used}。
+confluent-kafka-goはlibrdkafkaというKafkaのCライブラリのラッパーという立ち位置になります。なので、このライブラリを使用する際にはlibrdkafkaのインストールが必要になりますが、それが原因でwindowsでのサポートはconfluent-kafka-goではされていないようです。
+kafka-goは、他２つのライブラリより後発のライブラリで、saramaやconfluent-kafka-goの問題点を解決することを目的として開発されました。しかし、現状Kafkaの最新バージョンに追従していないように見受けられるので、他のライブラリを使うのが得策かと思います。
 
-今回はShopify/saramaを使って構築していきます。saramaの注意点として、以前まではbsm/sarama-clusterというライブラリも並行して使用しないとKafkaのConsumer Groupという概念を扱うことが出来なかったのですが、最近になってこのライブラリの機能がsaramaに合併されました。ですので、古い技術記事にはsarama-clusterを使ってくださいと記載されている場合があるかもしれませんのでご注意ください。
+今回はsaramaを使って構築していきます。saramaの注意点として、以前まではsarama-cluster@<fn>{sarama-cluster}というライブラリも並行して使用しないとKafkaのConsumer Groupという概念を扱うことが出来なかったのですが、2018/09/28にsarama v1.19.0@<fn>{implement-consumer-group}でsarama-clusterの機能がsaramaに合併されました。ですので、古い技術記事にはsarama-clusterを使ってくださいと記載されている場合があるかもしれないのでご注意ください。
+
+//footnote[sarama][@<href>{https://github.com/Shopify/sarama}]
+//footnote[confluent-kafka-go][@<href>{https://github.com/confluentinc/confluent-kafka-go}]
+//footnote[kafka-go][@<href>{https://github.com/segmentio/kafka-go}]
+//footnote[sarama-used][@<href>{https://github.com/Shopify/sarama/wiki/Frequently-Asked-Questions#is-sarama-used-in-production-anywhere}]
+//footnote[sarama-cluster][@<href>{https://github.com/bsm/sarama-cluster}]
+//footnote[implement-consumer-group][@<href>{https://github.com/Shopify/sarama/releases/tag/v1.19.0}]
 
 === Brokerの起動
 
-それでは、まずはKafka Brokerを立ち上げていきましょう。Kafka公式サイトのQuick Startを見てBrokerを立ち上げるのも一つですが、wurstmeister/kafka-dockerという便利なプロダクトがあるのでこれを使っていきましょう。
+それでは、まずはKafka Brokerを立ち上げていきましょう。Kafka公式サイトのQuick Start（@<href>{https://kafka.apache.org/quickstart}）を見てBrokerを立ち上げるのも一つですが、wurstmeister/kafka-docker@<fn>{kafka-docker}という便利なプロダクトがあるのでこれを使っていきましょう。
 
 事前準備として適宜以下を行っておいてください。
 
@@ -140,7 +156,7 @@ segmentio/kafka-goは、他２つのライブラリより後発のライブラ�
 % cd kafka-docker
 //}
 
-さて、ここでdocker-compose upで立ち上げたいところですが、その前に１点だけdocker-compose.ymlに修正を加えます。
+さて、ここでdocker-compose upで立ち上げたいところですが、その前に１点だけdocker-compose.ymlのKAFKA_ADVERTISED_HOST_NAMEに修正を加えます。
 
 //listnum[docker-compose.yml][Docker Compose設定][yaml]{
 version: '2'
@@ -171,7 +187,7 @@ Creating kafka-docker_kafka_2     ... done
 Creating kafka-docker_kafka_3     ... done
 //}
 
-正常に動いていることを確認するために、簡単にコマンドライン上でProducer・Consumerを動かしてメッセージのやり取りをしてみましょう。まずはProducer・Consumerのコマンドラインツールを取得するためにKafkaのコードを取得してきます。2019年3月現在ではKafka 2.2.0が最新バージョンになりますので、そちらに準拠して進めていきます。
+作成されたkafka-docker_kafka_XがBrokerになり、kafka-docker_zookeeper_1が各Brokerが使用しているzookeeperになります。それでは正常に動いていることを確認するために、簡単にコマンドライン上でProducer・Consumerを動かしてメッセージのやり取りをしてみましょう。まずはProducer・Consumerのコマンドラインツールを取得するためにKafkaのコードを取得してきます。2019年3月現在ではKafka 2.2.0が最新バージョンになりますので、そちらに準拠して進めていきます。
 
 //list[download-kafka][Kafkaのダウンロード][]{
 % wget http://ftp.jaist.ac.jp/pub/apache/kafka/2.2.0/kafka_2.12-2.2.0.tgz
@@ -181,7 +197,7 @@ Creating kafka-docker_kafka_3     ... done
 それでは最初にtopicsの作成、その後Producerを実行します。実行に際してKafka Brokerのポート番号が必要になりますので、kafka-dockerで立ち上げたKafka Brokerの情報を取得してから実行します。
 
 //list[kafka-console-producer][Producerの実行][]{
-% cd ~/kafka-docker
+% cd kafka-docker
 % docker-compose ps
           Name                                 Ports
 ---------------------------------------------------------------------------
@@ -218,9 +234,11 @@ Partition: 2 Leader: 1001 Replicas: 1001,1003,1002 Isr: 1001,1003,1002
 
 これでtest topicを介したメッセージングの準備は出来ました。Producerを実行しているプロセスで何か文字を打ってみましょう。するとConsumerを実行しているプロセスにProducerで打った文字が表示されればKafka Brokerが正常に動いている証です。
 
+//footnote[kafka-docker][@<href>{https://github.com/wurstmeister/kafka-docker}]
+
 === Producerの作成
 
-ここからはGoの出番です。Kafkaのコマンドラインで実行していたProducerに当たる部分を実装していきます。まずはProducerのサンプルを見ていきましょう。
+ここからはGoの出番です。@<list>{kafka-console-producer}で実行していたProducerに当たる部分を実装していきます。まずは@<list>{SyncProducer}を見ていきましょう。
 
 //listnum[SyncProducer][Kafka SyncProducer][go]{
 package main
@@ -228,8 +246,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/Shopify/sarama"
 	"log"
+
+	"github.com/Shopify/sarama"
 )
 
 func main() {
@@ -282,7 +301,7 @@ func main() {
 }
 //}
 
-こちらはコマンド引数として渡したBrokerのアドレスに対して、「Hello World」というメッセージをtest topicに送信する簡単なものになっています。実装としてはProducerのconfigを諸々設定し、Producerを作成・メッセージの送信という流れになっており、そこまで難しくないでしょう。
+@<list>{SyncProducer}はコマンド引数として渡したBrokerのアドレスに対して、「Hello World」というメッセージをtest topicに送信する簡単なものになっています。実装としてはProducerのconfigを諸々設定し、Producerを作成・メッセージの送信という流れになっており、そこまで難しくないでしょう。
 さて、それでは試しにこちらのコードを動かしてConsumerにメッセージが届くかどうか見てみましょう。先程と同じようにProducerとConsumerは別々のプロセスで立ち上げることに注意してください。
 
 //list[run-producer][Producerの実行][]{
@@ -295,7 +314,7 @@ Partition: 2, Offset: 0
 % ./kafka-console-consumer.sh \
     --bootstrap-server localhost:32801,localhost:32802,localhost:32803 \
     --topic test --from-beginning
-    
+
 Hello World
 //}
 
@@ -307,8 +326,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/Shopify/sarama"
 	"log"
+
+	"github.com/Shopify/sarama"
 )
 
 func main() {
@@ -357,11 +377,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/Shopify/sarama"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/Shopify/sarama"
 )
 
 func main() {
@@ -382,7 +403,6 @@ func main() {
 		log.Fatalln("failed create producer", err)
 	}
 	defer producer.Close()
-
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
     // URLクエリパラメータの取得
@@ -433,7 +453,7 @@ func main() {
 % curl -X GET http://localhost:8080\?message=hello
 //}
 
-これでconsumerで確認するとhelloが表示されることでしょう。さて、ここまででAPIサーバ兼Producerの役割を持つアプリケーションは完成しました。本章の最後に今回紹介した以外のProducerでの設定項目について触れていきたいと思います。
+これでconsumerで確認するとhelloが表示されることでしょう。さて、ここまででAPIサーバ兼Producerの役割を持つアプリケーションは完成しました。本節の最後に今回紹介した以外のProducerでの設定項目について触れていきたいと思います@<fn>{sarama-producer-config}。
 
 //list[producer-config][Producer設定一覧][]{
 // メッセージの圧縮形式を設定
@@ -483,7 +503,9 @@ config.Producer.Partitioner
 config.Producer.Timeout
 //}
 
-様々な設定がありますが、プロジェクトの規模が物凄く大きいなど特別な状況以外は特に設定することは無いものが殆どかと思われます。メッセージの量にも依るのですがKafkaのBrokerにログファイルが溜まり過ぎて、ディスク容量を食い潰して突然の死を迎えるという状況を目にしたことがあるので、筆者としてはメッセージの圧縮はやっておいた方がいいのかなと思います。
+様々な設定がありますが、プロジェクトの規模が物凄く大きいなど特別な状況以外は特に設定することは無いものが殆どかと思われます。メッセージの量にも依るのですがKafkaのBrokerにログファイルが溜まり過ぎて、ディスク容量を食い潰して突然の死を迎えるという状況を目にしたことがあるので、筆者としてはメッセージを圧縮しておいた方が良いと思います。
+
+//footnote[sarama-producer-config][Producer structに記載@<href>{https://godoc.org/github.com/Shopify/sarama#Config}]
 
 === Consumerの作成
 
@@ -501,6 +523,7 @@ import (
 	"time"
 )
 
+// ConsumerGroupHandler Interfaceを満たすために、Setup・ConsumeCalim・CleanupメソッドはシグネチャをInterfaceに合わせています
 type exampleConsumerGroupHandler struct{}
 
 // ConsumerClaim処理の前に実行される処理
@@ -592,9 +615,9 @@ func main() {
 //}
 
 さて、この中で新たな概念としてConsumer Groupというものが出てきましたね。これは特定のConsumer Groupに所属するConsumerの一つに重複無くメッセージを届けるような時に使われます。殆どの場合でConsumerを多数用意し、複数のPartitionを上手くバランシングすると思われますので、基本的にはConsumer Groupで作成するのが良いでしょう。
-基本的にはコメントで書いてあるように動くのですが、今回はSetup処理やCleanup処理は特に何もしない形で実装しております。本来であるなら、メッセージをconsumeした後によしなにデータベースへデータを挿入したりなどの処理が組み込まれますので、そういった時にHandlerでsql.DBを持ち、そこを通してデータベースのセットアップやクローズ処理をする際に使うのがベターでしょう。
+基本的にはコメントで書いてあるように動くのですが、今回はSetup処理やCleanup処理は特に何もしない形で実装しております。本来であるなら、メッセージをconsumeした後によしなにデータベースへデータを挿入したりなどの処理が組み込まれますので、そういった時にHandlerで@<code>{sql.DB}を持ち、そこを通してデータベースのセットアップやクローズ処理をする際に使うのがベターでしょう。
 
-それでは、Producerの時と同じく設定類についても軽く触れていきます。
+それでは、Producerの時と同じく設定類についても軽く触れていきます@<fn>{sarama-consumer-config}。
 
 //list[consumer-setting][Consumer設定一覧][]{
 // consumerのセッションがアクティブになっているか確認する間隔時間
@@ -646,6 +669,11 @@ config.Consumer.MaxProcessingTime = 100 * time.Microsecond
 
 全ての設定を使うことは少ないと思いますが、こういった設定があるということを頭の片隅にでも覚えておいてください。
 
+//footnote[sarama-consumer-config][Consumer structに記載@<href>{https://godoc.org/github.com/Shopify/sarama#Config}]
+
 == おわりに
 
-ここまで読んで頂きありがとうございます。分かりにくいところもあったかもしれませんが、Kafkaの様々な概念は実際に動かしてみないと分かりづらいことが多いです。是非とも個人開発や現場で使ってみてKafkaを極めていってください。また、Kafkaの情報源として最近発売された「Apache Kafka 分散メッセージングシステムの構築と活用」という本は今回扱ったような基本的な説明から、一歩進んだ実用的な例も書かれていますので一読の価値ありです。さらに、Confluent社のBlogはKafkaの話題をよく取り扱っているのでRSS等でウォッチするのもオススメします。改めてになりますが、読んで頂きありがとうございました。
+ここまで読んで頂きありがとうございます。分かりにくいところもあったかもしれませんが、Kafkaの様々な概念は実際に動かしてみないと分かりづらいことが多いです。是非とも個人開発や現場で使ってみてKafkaを極めていってください。また、Kafkaの情報源として最近発売された「Apache Kafka 分散メッセージングシステムの構築と活用」@<fn>{kafka-book}という本は今回扱ったような基本的な説明から、一歩進んだ実用的な例も書かれていますので一読の価値ありです。さらに、Confluent社のBlog@<fn>{confluent-blog}はKafkaの話題をよく取り扱っているのでRSS等でウォッチするのもオススメします。改めてになりますが、読んで頂きありがとうございました。
+
+//footnote[kafka-book][@<href>{https://www.amazon.co.jp/dp/B07H8D6CL9}]
+//footnote[confluent-blog][@<href>{https://www.confluent.io/blog}]
