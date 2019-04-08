@@ -92,13 +92,81 @@ FAIL	github.com/hgsgtk/go-snippets/testing-codes/sample	0.008s
 
 ここで、「費用対効果」という考え方がでてきます。ユニットテストを効果的なものにするためには、ユニットテストによる効果をユニットテスト自体のコストより高い状態を目指す必要があります。つまり、かかるコストに対して得られる利益が大きい「費用対効果の高い」テストを意識して取り組むということです。以降、費用対効果の高いユニットテストを目指していくために意識するべき点について説明します。
 
+== 適切なエラーレポート
+ユニットテスト自体を維持するコストが発生する点について「費用対効果の高いユニットテストという考え方」にて説明しました。維持コストを最小限にするために意識するべき点のひとつとして、「適切なエラーレポート」という観点があります。テストが失敗した際に「なぜ失敗したのか」について、それを見るプログラマに対してわかりやすいレポートである必要があります。わかりやすいレポートにすることによって、テストの失敗に対する調査・解決にかかるコストを下げれます。
+
+では、適切なエラーレポートとはなんでしょうか。@<href>{https://golang.org/doc/faq#assertions}にて説明がありますが、直接的かつ適切な内容とされています。
+具体的には、「施行した内容」・「どのような入力を行ったか」・「実際の結果」・「期待される結果」の４つの内容が含まれていることが望ましいです。
+
+適切なエラーレポートを知るために、逆に一度適切なエラーレポートができていないサンプルを見てましょう。@<list>{InStatusList}に対して、ユニットテストを書いてみます。
+
+//list[InStatusList][sample.go][go]{
+  func InStatusList(x string) bool {
+	ls := []string{"drafted", "published"}
+	for _, s := range ls {
+		if x == s {
+			return true
+		}
+	}
+	return false
+}
+//}
+
+//list[TestInStatusListNotReadable][適切なエラーレポートが設定できていない例][go]{
+  func TestInStatusList(t *testing.T) {
+  	var x string
+  	var want bool
+
+  	x = "deleted" // 実は deleted というステータスもあった
+  	want = true
+  	if got := sample.InStatusList(x); got != want {
+  		t.Errorf("unexpected value %t", got)
+  	}
+  }
+//}
+
+期待した結果が得られなかった場合、どのような結果が得られたかだけをエラーレポートの内容に含めました。このテストコードを実行した場合、@<list>{ExectuteTestInStatusListNotReadable}の結果が得られます。
+
+//list[ExectuteTestInStatusListNotReadable][適切なエラーレポートが得られない例][]{
+=== RUN   TestInStatusList
+--- FAIL: TestInStatusList (0.00s)
+    sample_test.go:42: unexpected value false
+FAIL
+//}
+
+さてこのエラーメッセージを見た時、何がわかったでしょうか。「なにやら期待していない false が返ってきたようだ」という情報は汲み取れます。しかし、「何の検証を試みて得られた結果なのか？」・「どのような入力（引数）が与えられたのか？」。「何が期待値なのか？」についてエラーレポートからはわかりません。このエラーレポートを受け取ったプログラマは対象のテストコードを慎重に読み解くことでしか何が起きているのかが理解できません。テストケースが少ないうちはこのようなエラーレポートでもメンテナンスできるかもしれませんが、ケースが多くなってきて複数箇所でエラーが発生するようになるとこのようなエラーレポートではメンテナンスが苦しくなってきます。では、より適切なエラーレポートをしているテストケースを見てみましょう。
+
+//list[TestInStatusListReadable][適切なエラーレポートを設定した例][go]{
+  func TestInStatusList(t *testing.T) {
+  	var x string
+  	var want bool
+
+  	x = "deleted"
+  	want = true
+  	if got := sample.InStatusList(x); got != want {
+  		t.Errorf("InStatusList(%s) = %t, want %t", x, got, want)
+  	}
+  }
+//}
+
+より適切なエラーレポートを行う一つの形式として、@<code>{f(x) = y, want z}の形式があります。f(x)では試みた結果と入力、yは得られた結果、zは期待値を表します。@<list>{TestInStatusListReadable}の例では、@<code>{t.Errorf("InStatusList(%s) = %t, want %t", x, got, want)}にて、エラーレポートしています。これを実行すると@<list>{ExecuteTestInStatusListReadable}の結果が得られます。
+
+//list[ExecuteTestInStatusListReadable][より適切なエラーレポートが得られた例][]{
+  === RUN   TestInStatusList
+  --- FAIL: TestInStatusList (0.00s)
+      sample_test.go:42: InStatusList(deleted) = false, want true
+  FAIL
+//}
+
+@<list>{ExectuteTestInStatusListNotReadable}の結果と比較して、エラーレポートから得られる情報量が増え、「@<code>{InStatusList}の検証を試み deleted という文字列を入力した際に false という結果が得られたが、期待値は true であった。」と直接的かつ十分な情報量を読み取ることができます。
+
 == 適切なエラーハンドリング
 Goの特徴的な言語仕様として、 アサーションが提供されていない点が挙げられます。これは、@<href>{https://golang.org/doc/faq#assertions}にて理由が説明されていますが、「アサートが適切なエラーハンドリングとエラーレポートを考慮せずに済ますためのツールとして使われている」という経験上の懸念より提供されていません。適切なエラーハンドリングとはなんでしょうか。
 
 適切なエラーハンドリングについて、「致命的ではないエラーが発生した際にクラッシュさせずに処理を継続させることである」と説明されています。
 適切なエラーハンドリングを行うことは、費用対効果の高いテストを得るためにも非常に有用です。
 
-では、Goにおいて適切なエラーハンドリングを実現するためには、どのようにすればよいのでしょうか。Goでは testing パッケージが提供する @<code>{*T.Error}/@<code>{*T.Errorf}@<fn>{terror}@<fn>{terrorf}・@<code>{*T.Fatal}/@<code>{*T.Fatalf}@<fn>{tfatal}@<fn>{tfatalf}というAPIが提供しています。それらを適切に使い分けることによって、適切なエラーハンドリングを実現します。
+では、Goにおいて適切なエラーハンドリングを実現するためには、どのようにすればよいのでしょうか。Goでは testing パッケージが提供する @<code>{*T.Error}@<fn>{terror}/@<code>{*T.Errorf}@<fn>{terrorf}・@<code>{*T.Fatal}@<fn>{tfatal}/@<code>{*T.Fatalf}@<fn>{tfatalf}というAPIが提供しています。それらを適切に使い分けることによって、適切なエラーハンドリングを実現します。
 
 //footnote[terror][https://golang.org/pkg/testing/#T.Error]
 //footnote[terrorf][https://golang.org/pkg/testing/#T.Errorf]
@@ -108,7 +176,6 @@ Goの特徴的な言語仕様として、 アサーションが提供されて�
 @<code>{*T.Errorf}では、「対象の関数は失敗した」と記録されますが、実行は継続されます。それに対して、@<code>{*T.Fatalf}では、@<code>{*T.Errorf}と同様に「対象の関数は失敗した」ことを記録しますが、同時に実行を停止し、次のテストケースの実行へと移ります。
 よって、致命的なエラーに対するハンドリングは@<code>{*T.Fatalf}で行い、そうではないエラーに対するハンドリングは、@<code>{*T.Errorf}で行います。
 
-@<list>{GetNum}を
 //list[GetNum][sample.go][go]{
   package sample
 
@@ -241,15 +308,6 @@ FAIL
 //}
 
 このように、適切なエラーハンドリングが行われておらず全てのエラーでクラッシュしていた場合、プログラマはエラーを直さない限り以降どのような結果が得られるかわかりません。一回の実行結果から得られる情報量がすくないため都度エラーを直しては次のエラーを調査するといった非効率的な方法でユニットテストをメンテナンスすることになります。プログラマ自身のユニットテストメンテナンスコストを鑑みても、適切なエラーハンドリングは重要です。
-
-
-== 適切なエラーレポート
-ユニットテストは維持するコストが発生すると「ユニットテストの考え方」にて説明しました。維持することを最小限にするためにもテストが失敗した際に「なぜ失敗したのか」について、それを見るプログラマに対してわかりやすいレポートである必要があります。そのため、適切なエラーレポートを行うことは非常に重要です。
-
-では、適切なエラーレポートとはなんでしょうか。@<href>{https://golang.org/doc/faq#assertions}にて説明がありますが、直接的かつ適切な内容とされています。
-具体的には、「施行した内容」・「どのような入力を行ったか」・「実際の結果」・「期待される結果」の４つの内容が含まれていることが望ましいです。
-
-#@# TODO エラーメッセージの例・できていない例も含めて
 
 == 表駆動テスト・サブテスト
 Goでは非常に広く使われているテストの技法として、表駆動（table-driven）テストというものがあります。例えば、次のようなテストコードになります。
