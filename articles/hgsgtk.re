@@ -313,7 +313,7 @@ FAIL
 Goでは非常に広く使われているテストの技法として、テーブル駆動テストというものがあります。@<list>{FizzBuzzGetMsg}をテーブル駆動テストで書いてみましょう。
 
 //list[TestFizzBuzzGetMsgTableDriven][テーブル駆動テスト][go]{
-  func TestGetMsgTableDriven(t *testing.T) {
+  func TestGetMsg(t *testing.T) {
   	tests := []struct {
   		num  int
   		want string
@@ -345,19 +345,91 @@ Goでは非常に広く使われているテストの技法として、テーブ
 
 テーブル駆動テストでは、必要に応じた新たな表の項目を追加するのが簡単であり、判定ロジックの複製の不要です。そのため、このテストに対して修正・追加したいプログラマの工数を最小限である維持コストの低いテストを実現する方法になります。合わせて、テストを読む際にも、対象関数のテストパターンが表にかかれているので可読性の高いドキュメンテーションとしての価値も高いテストとなります。さらに、判定ロジックの複製が不要な分、これまで説明してきた「適切なエラーハンドリング」・「適切なエラーレポート」に集中することができます。
 
-== インターフェース・スタブ実装
-不安定なテスト（Fragile Test）が生まれてしまうことを避ける
-テストの重複を避ける
-テストの速度、CI（Continuous Integration）で実行する際には注意したいポイント
-3つの観点によりスタブに置き換えていくことは有効な手段。
+加えて、サブテストを使うことができます。サブテストは@<code>{*T.Run}@<fn>{trun}を使用することによって実現します。@<list>{TestFizzBuzzGetMsgTableDriven}をサブテストを使うように書き換えます。
+
+//footnote[trun][https://golang.org/pkg/testing/#T.Run]
+
+//list[TestFizzBuzzGetMsgSubTest][サブテスト][go]{
+func TestGetMsg(t *testing.T) {
+	tests := []struct {
+		desc string
+		num  int
+		want string
+	}{
+		{
+			desc: "divisible by 15",
+			num:  15,
+			want: "FizzBuzz",
+		},
+		{
+			desc: "divisible by 5",
+			num:  5,
+			want: "Buzz",
+		},
+		{
+			desc: "divisible by 3",
+			num:  3,
+			want: "Fizz",
+		},
+		{
+			desc: "not divisible",
+			num:  1,
+			want: "1",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := fizzbuzz.GetMsg(tt.num); got != tt.want {
+				t.Errorf("GetMsg(%d) = %s, want %s", tt.num, got, tt.want)
+			}
+		})
+	}
+}
+//}
+
+@<list>{TestFizzBuzzGetMsgSubTest}を実行します。
+
+//list[ExectuteTestFizzBuzzGetMsgSubTest][サブテストを実行する][go]{
+=== RUN   TestGetMsg
+--- PASS: TestGetMsg (0.00s)
+=== RUN   TestGetMsg/divisible_by_15
+    --- PASS: TestGetMsg/divisible_by_15 (0.00s)
+=== RUN   TestGetMsg/divisible_by_5
+    --- PASS: TestGetMsg/divisible_by_5 (0.00s)
+=== RUN   TestGetMsg/divisible_by_3
+    --- PASS: TestGetMsg/divisible_by_3 (0.00s)
+=== RUN   TestGetMsg/not_divisible
+    --- PASS: TestGetMsg/not_divisible (0.00s)
+PASS
+//}
+
+サブテストを活用することは費用対効果の高いテストの実現に有用です。まず、それぞれのテストケースにテストケース名を与えることができます。これは、そのテストコードを読むプログラマが意図を理解しやすい可読性の高いテストコードに繋がります。また、特定のサブテストのみを実行することができます。たとえば、@<code>{divisible_by_15}のみを実行したい場合は、@<code>{--run}オプションをtestコマンドにわたすことで実現できます。特定のサブテストのみを実行できることによりデバッグ時に必要最小限のテスト実行で済むためデバッグコストの削減に繋がります。
+
+//list[ExectuteSpeficiedTestFizzBuzzGetMsgSubTest][特定のサブテストを実行する][]{
+  % go test github.com/hgsgtk/go-snippets/testing-codes/fizzbuzz --run TestGetMsg/divisible_by_15 -v
+  === RUN   TestGetMsg
+  === RUN   TestGetMsg/divisible_by_15
+  --- PASS: TestGetMsg (0.00s)
+      --- PASS: TestGetMsg/divisible_by_15 (0.00s)
+  PASS
+  ok  	github.com/hgsgtk/go-snippets/testing-codes/fizzbuzz	0.008s
+//}
+
+さらに、@<code>{*T.Parallel}@<fn>{tparallel}を合わせて使うことで並行でのテスト実行が可能になります。並行処理が可能になることでテストケース全体の実行時間を短縮することができます。
+
+//footnote[tparallel][https://golang.org/pkg/testing/#T.Parallel]
 
 == テストパッケージ
+#@# まだだめだぁ
+
 テストの可視性の意識
 テストを実行するにあたり対象パッケージと同一パッケージにするか・ことなるパッケージにするかという2つの選択肢があります。これはそれぞれの利点があるため意思を持ってどちらかを選択する必要があります。
 
 同一パッケージにした場合、privateな関数をテストすることができます。同一ではないパッケージにした場合は、他パッケージと同様の見え方になるので、実際の使用シーンを意識したテストケースになる利点があります。
 
 == テストコードの再利用性を高める
+#@# まだだめだぁ
+
 毎回のテスト関数で同じコードを書いていくのは非常に面倒です。その機械的な作業を毎回行うのは、テストケースの可読性を低下させる可能性があります。また、毎回の作業になるため、適切なエラーハンドリング・エラーレポーティングの意識が疎かになる危険性があります。
 テストコードの再利用性を高めるために、テストヘルパーを作成・利用する方法があります。
 
@@ -366,6 +438,13 @@ Goでは非常に広く使われているテストの技法として、テーブ
 #@# TODO ヘルパーにできるよねっていう例
 
 xUTPでも、テストユーティリティを活用してテストの可読性を上げることをひとつの方法として説明されています。テストユーティリティには、Creation MethodとCustom Assertion Methodのふたつの種類があります。
+
+== テスト容易な設計へ
+#@# まだだめだぁインターフェース・スタブ実装
+不安定なテスト（Fragile Test）が生まれてしまうことを避ける
+テストの重複を避ける
+テストの速度、CI（Continuous Integration）で実行する際には注意したいポイント
+3つの観点によりスタブに置き換えていくことは有効な手段。
 
 == おわりに
 
