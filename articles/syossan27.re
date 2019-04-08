@@ -144,7 +144,7 @@ kafka-goは、他２つのライブラリより後発のライブラリで、sar
 
 それでは、まずはKafka Brokerを立ち上げていきましょう。Kafka公式サイトのQuick Start（@<href>{https://kafka.apache.org/quickstart}）を見てBrokerを立ち上げるのも一つですが、wurstmeister/kafka-docker@<fn>{kafka-docker}という便利なプロダクトがあるのでこれを使っていきましょう。
 
-事前準備としてDockerのインストール・Docker Composeのインストールを行っておいてください。
+事前準備としてDocker・Docker Composeのインストールを行っておいてください。
 
 次にkafka-dockerの環境構築をしていきます。
 
