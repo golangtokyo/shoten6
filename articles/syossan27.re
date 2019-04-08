@@ -144,7 +144,7 @@ kafka-goは、他２つのライブラリより後発のライブラリで、sar
 
 それでは、まずはKafka Brokerを立ち上げていきましょう。Kafka公式サイトのQuick Start（@<href>{https://kafka.apache.org/quickstart}）を見てBrokerを立ち上げるのも一つですが、wurstmeister/kafka-docker@<fn>{kafka-docker}という便利なプロダクトがあるのでこれを使っていきましょう。
 
-事前準備としてDocker・Docker Composeのインストールを行っておいてください。
+事前準備としてDocker@<fn>{docker-install}・Docker Compose@<fn>{docker-compose-install}のインストールを行っておいてください。
 
 次にkafka-dockerの環境構築をしていきます。
 
@@ -231,6 +231,8 @@ Partition: 2 Leader: 1001 Replicas: 1001,1003,1002 Isr: 1001,1003,1002
 
 これでtest topicを介したメッセージングの準備は出来ました。Producerを実行しているプロセスで何か文字を打ってみましょう。Consumerを実行しているプロセスにProducerで打った文字が表示されればKafka Brokerが正常に動いている証です。
 
+//footnote[docker-install][@<href>{https://docs.docker.com/install/#supported-platforms}]
+//footnote[docker-compose-install][@<href>{https://docs.docker.com/compose/install/#install-compose}]
 //footnote[kafka-docker][@<href>{https://github.com/wurstmeister/kafka-docker}]
 
 === Producerの作成
