@@ -21,7 +21,7 @@ ok  	fizzbuzz	0.006s
 
 @<code>{_test.go} で終わるファイルは、@<code>{go build} によってビルドした場合、ビルド対象となりません。一方、 @<code>{go test} でビルドされた場合には対象パッケージの一部としてビルドされます。
 
-テストを作成するには、 testing@<fn>{testing} パッケージをインポートしたファイルで次のシグネチャを持った関数を作成します。
+テストを作成するには、 testing@<fn>{testing} パッケージをインポートしたファイルで、@<list>{sampleTestGo}のようなシグネチャを持った関数を作成します。
 
 //footnote[testing][@<href>{https://golang.org/pkg/testing/}]
 
@@ -46,14 +46,14 @@ func SayHello() string {
 }
 //}
 
-この場合、次のようなテストコードを作成することができます。
+この場合、@<list>{sampleTestHello}のようなテストコードを作成することができます。
 
 //list[sampleTestHello][sample_test.go][go]{
 func TestSayHello(t *testing.T) {
 	want := "hello"
   // SayHelloの戻り値が期待値と異なる場合エラーとして処理する
 	if got := sample.SayHello(); got != want {
-		t.Errorf("SayHello() = %#v, want %#v", got, want)
+		t.Errorf("SayHello() = %s, want %s", got, want)
 	}
 }
 //}
@@ -61,19 +61,19 @@ func TestSayHello(t *testing.T) {
 作成したユニットテストを先程紹介した @<code>{go test} で実行すると、ユニットテストが通ることが確認できます。
 
 //list[sampleTestExecution][作成したSayHelloに対するテストが通る][]{
--> % go test -v github.com/hgsgtk/go-snippets/testing-codes/sample
+% go test -v github.com/hgsgtk/go-snippets/testing-codes/sample
 === RUN   TestSayHello
 --- PASS: TestSayHello (0.00s)
 PASS
 ok  	github.com/hgsgtk/go-snippets/testing-codes/sample	0.007s
 //}
 
-このユニットテストが失敗する場合は次のような出力結果が得られます。
+このユニットテストが失敗する場合は@<list>{sampleTestExecutionFailed}のような出力結果が得られます。
 
 //list[sampleTestExecutionFailed][作成したSayHelloに対するテストが失敗する][]{
--> % go test -v github.com/hgsgtk/go-snippets/testing-codes/sample
+% go test -v github.com/hgsgtk/go-snippets/testing-codes/sample
 --- FAIL: TestSayHello (0.00s)
-  sample_test.go:16: SayHello() = "hellox", want "hello"
+  sample_test.go:16: SayHello() = hellox, want hello
 FAIL
 FAIL	github.com/hgsgtk/go-snippets/testing-codes/sample	0.008s
 //}
@@ -98,7 +98,12 @@ Goの特徴的な言語仕様として、 アサーションが提供されて�
 適切なエラーハンドリングについて、「致命的ではないエラーが発生した際にクラッシュさせずに処理を継続させることである」と説明されています。
 適切なエラーハンドリングを行うことは、費用対効果の高いテストを得るためにも非常に有用です。
 
-では、Goにおいて適切なエラーハンドリングを実現するためには、どのようにすればよいのでしょうか。Goでは testing パッケージが提供する @<code>{*T.Errorf}（@<code>{*T.Error}）・@<code>{*T.Fatalf}（@<code>{*T.Fatal}）というAPIが提供しています。それらを適切に使い分けることによって、適切なエラーハンドリングを実現します。
+では、Goにおいて適切なエラーハンドリングを実現するためには、どのようにすればよいのでしょうか。Goでは testing パッケージが提供する @<code>{*T.Error}/@<code>{*T.Errorf}@<fn>{terror}@<fn>{terrorf}・@<code>{*T.Fatal}/@<code>{*T.Fatalf}@<fn>{tfatal}@<fn>{tfatalf}というAPIが提供しています。それらを適切に使い分けることによって、適切なエラーハンドリングを実現します。
+
+//footnote[terror][https://golang.org/pkg/testing/#T.Error]
+//footnote[terrorf][https://golang.org/pkg/testing/#T.Errorf]
+//footnote[tfatal][https://golang.org/pkg/testing/#T.Fatal]
+//footnote[tfatalf][https://golang.org/pkg/testing/#T.Fatalf]
 
 @<code>{*T.Errorf}では、「対象の関数は失敗した」と記録されますが、実行は継続されます。それに対して、@<code>{*T.Fatalf}では、@<code>{*T.Errorf}と同様に「対象の関数は失敗した」ことを記録しますが、同時に実行を停止し、次のテストケースの実行へと移ります。
 よって、致命的なエラーに対するハンドリングは@<code>{*T.Fatalf}で行い、そうではないエラーに対するハンドリングは、@<code>{*T.Errorf}で行います。
@@ -127,11 +132,11 @@ Goの特徴的な言語仕様として、 アサーションが提供されて�
   	str := "7"
   	got, err := sample.GetNum(str)
   	if err != nil {
-  		t.Fatalf("GetNum(%#v) caused unexpected error '%#v'", str, err)
+  		t.Fatalf("GetNum(%s) caused unexpected error '%#v'", str, err)
   	}
   	want := 7
   	if got != want {
-  		t.Errorf("GetNum(%#v) = %#v, want %#v", str, got, want)
+  		t.Errorf("GetNum(%s) = %d, want %d", str, got, want)
   	}
   }
 //}
@@ -139,7 +144,7 @@ Goの特徴的な言語仕様として、 アサーションが提供されて�
 ユニットテストにおいて致命的なエラーとして、テスト対象を実行・検証する前準備の処理の失敗が挙げられます。もしくは、例えば、http.Handlerをテストする際に擬似リクエストに失敗した場合、以降のテストを継続することができません。このような、処理継続が不可能なものに対してはテストをクラッシュさせることが効果的です。
 一方、致命的ではないエラーとしては、複数観点での検証のひとつの検証が失敗したケースなどが挙げられます。この場合、検証失敗によって以降の処理継続が不可能になるわけではありません。よって、この場合はテストをクラッシュさせないことが効果的になるわけです。
 
-適切なエラーハンドリングを行うことによって、致命的ではないエラーである以上一回の実行で多くのエラーをプログラマはテストの失敗結果を得ることができます。適切なエラーハンドリングができていない例として次のようなテストコードが挙げられます。
+適切なエラーハンドリングを行うことによって、致命的ではないエラーである以上一回の実行で多くのエラーをプログラマはテストの失敗結果を得ることができます。適切なエラーハンドリングができていない例として@<list>{TestFizzBuzzGetMsg}のようなテストコードが挙げられます。
 
 //list[FizzBuzzGetMsg][fizzbuzz.go][go]{
   package fizzbuzz
@@ -163,37 +168,37 @@ Goの特徴的な言語仕様として、 アサーションが提供されて�
 //}
 
 //list[TestFizzBuzzGetMsg][fizzbuzz_test.go][go]{
-func TestGetMsg2(t *testing.T) {
-	var num int
-	var want string
+  func TestGetMsg(t *testing.T) {
+  	var num int
+  	var want string
 
-	num = 15
-	want = "FizzBuzz"
-	if got := fizzbuzz.GetMsg(num); want != got {
-		t.Fatalf("GetMsg(%#v) = %#v, want %#v", num, want, got)
-	}
+  	num = 15
+  	want = "FizzBuzz"
+  	if got := fizzbuzz.GetMsg(num); want != got {
+  		t.Fatalf("GetMsg(%d) = %s, want %s", num, want, got)
+  	}
 
-	num = 5
-	want = "Buzz"
-	if got := fizzbuzz.GetMsg(num); want != got {
-		t.Fatalf("GetMsg(%#v) = %#v, want %#v", num, want, got)
-	}
+  	num = 5
+  	want = "Buzz"
+  	if got := fizzbuzz.GetMsg(num); want != got {
+  		t.Fatalf("GetMsg(%d) = %s, want %s", num, want, got)
+  	}
 
-	num = 3
-	want = "Fizz"
-	if got := fizzbuzz.GetMsg(num); want != got {
-		t.Fatalf("GetMsg(%#v) = %#v, want %#v", num, want, got)
-	}
+  	num = 3
+  	want = "Fizz"
+  	if got := fizzbuzz.GetMsg(num); want != got {
+  		t.Fatalf("GetMsg(%d) = %s, want %s", num, want, got)
+  	}
 
-	num = 1
-	want = "1"
-	if got := fizzbuzz.GetMsg(num); want != got {
-		t.Fatalf("GetMsg(%#v) = %#v, want %#v", num, want, got)
-	}
-}
+  	num = 1
+  	want = "1"
+  	if got := fizzbuzz.GetMsg(num); want != got {
+  		t.Fatalf("GetMsg(%d) = %s, want %s", num, want, got)
+  	}
+  }
 //}
 
-すべてのエラーを、@<code>{*T.Fatalf}でハンドリングでしています。テストが通っている間はこれでも問題ないように見えるかもしれません。では、次のように@<list>{FizzBuzzGetMsg}に２箇所バグが侵入してしまったケースを考えて未ましょう。
+すべてのエラーを、@<code>{*T.Fatalf}でハンドリングでしています。テストが通っている間はこれでも問題ないように見えるかもしれません。では、@<list>{FizzBuzzGetMsg}に２箇所バグが侵入してしまったケースを考えてみましょう。
 
 //list[BuggFizzBuzzGetMsg][fizzbuzz.go][go]{
   package fizzbuzz
@@ -221,17 +226,17 @@ func TestGetMsg2(t *testing.T) {
 //list[ExecuteTestFizzBuzzGetMsg][GetMsgの戻り値検証で失敗した場合（１）][]{
 === RUN   TestGetMsg
 --- FAIL: TestGetMsg (0.00s)
-    fizzbuzz_test.go:47: GetMsg(15) = "FizzBuzz", want "Buzz"
+    fizzbuzz_test.go:47: GetMsg(15) = FizzBuzz, want Buzz
 FAIL
 //}
 
-最初の１箇所のみがエラー結果として得られました。もう１つ侵入したバグに対するエラー結果を得ることはできませんでした。このテストケースではひとつの検証パターンの失敗を致命的なエラーとして扱いハンドリングしています。そのため、１回の実行によって得られる情報が少ないため、何度も修正しては現れるエラーに対して修正を繰り返さなければなりません。もし、@<code>{t.Errorf}でハンドリングしていた場合は次のように１回で多くの情報を得ることができます。
+最初の１箇所のみがエラー結果として得られました。もう１つ侵入したバグに対するエラー結果を得ることはできませんでした。このテストケースではひとつの検証パターンの失敗を致命的なエラーとして扱いハンドリングしています。そのため、１回の実行によって得られる情報が少ないため、何度も修正しては現れるエラーに対して修正を繰り返さなければなりません。もし、@<code>{t.Errorf}でハンドリングしていた場合は@<list>{ExecuteTestFizzBuzzGetMsgBetter}のように１回で多くの情報を得ることができます。
 
 //list[ExecuteTestFizzBuzzGetMsgBetter][t.Errorfでハンドリングした場合のテスト結果][]{
 === RUN   TestGetMsg
 --- FAIL: TestGetMsg (0.00s)
-    fizzbuzz_test.go:47: GetMsg(15) = "FizzBuzz", want "Buzz"
-    fizzbuzz_test.go:59: GetMsg(3) = "Fizz", want "3"
+    fizzbuzz_test.go:47: GetMsg(15) = FizzBuzz, want Buzz
+    fizzbuzz_test.go:59: GetMsg(3) = Fizz, want 3
 FAIL
 //}
 
