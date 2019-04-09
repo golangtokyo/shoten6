@@ -20,14 +20,16 @@ Vim	8.1.950
 Go	go1.12 darwin/amd64
 //}
 
-また、本章の中に{HOME}が複数回出ますが、@<table>{home}の通りに読み替えてください。
+また、本章の中に{HOME}が複数回出ますが、
+OSごとに{HOME}のパスとパスの区切り文字が異なるので、
+@<table>{home}の通りに読み替えてください。
 
 //table[home][HOMEの定義]{
-OS	パス
+OS	パス	区切り文字
 ----------------------------
-Mac	/Users/yourname
-Linux	/home/yourname
-Windows	C:\Users\yourname
+Mac	/Users/yourname	/
+Linux	/home/yourname	/
+Windows	C:\Users\yourname	\
 //}
 
 == Vimの基本
@@ -282,7 +284,7 @@ type Gorilla struct {
 
 === GoDocを開く
 @<code>{:GoDocBrowser}でカーソル上の定義のGoDocを開くことができます。
-Vim上でGoDocを確認したい場合は@<code>{K}で確認できます。
+また、@<code>{K}でVim上でGoDocを確認できます。
 
 === インターフェイス実装一覧
 インターフェイスにカーソルを置き@<code>{:GoImplements}で実装一覧を検索することができます。
@@ -347,7 +349,8 @@ func NewGorilla() Gorilla {
 //}
 
 === リネーム
-@<code>{:GoRename}でカーソルを当てた変数や関数が使われている箇所をすべてリネームできます。
+@<code>{:GoRename}でカーソルを当てた変数や関数などの識別子をリネームできます。
+なお、指定した識別子を使用しているすべての箇所でリネームが行われます。
 
 === インターフェイスのメソッドスタブ生成
 @<code>{:GoImpl}で@<list>{goimpl_before}、@<list>{goimpl}のようにカーソルを当てた型@<code>{T}に指定したインターフェイスのメソッドスタブを生成できます。
