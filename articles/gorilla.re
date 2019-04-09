@@ -1,7 +1,7 @@
 = VimでGoを快適に書く
 
 == はじめに
-はじめまして、都内でゴリラ.vim@<fn>{gorilla.vim}を主催しているVim好きなゴリです。
+はじめまして、都内でゴリラ.vim@<fn>{gorilla.vim}を主催しているVim好きなゴリラです。
 普段はVimを使ってGoのコードを書くことが趣味でTUI@<fn>{tui}を作るのが好き、
 最近はDocker@<fn>{docker}のTUI Clientツール@<fn>{docui}を作っています。
 
