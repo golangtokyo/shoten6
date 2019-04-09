@@ -92,6 +92,8 @@ FAIL	github.com/hgsgtk/go-snippets/testing-codes/sample	0.008s
 
 ここで、「費用対効果」という考え方がでてきます。ユニットテストを効果的なものにするためには、ユニットテストによる効果をユニットテスト自体のコストより高い状態を目指す必要があります。つまり、かかるコストに対して得られる利益が大きい「費用対効果の高い」テストを意識して取り組むということです。以降、費用対効果の高いユニットテストを目指していくために意識するべき点について説明します。
 
+#@# ここでxUTPのテストの経済性の話を入れる
+
 == 適切なエラーレポート
 ユニットテスト自体を維持するコストが発生する点について「費用対効果の高いユニットテストという考え方」にて説明しました。維持コストを最小限にするために意識するべき点のひとつとして、「適切なエラーレポート」という観点があります。テストが失敗した際に「なぜ失敗したのか」について、それを見るプログラマに対してわかりやすいレポートである必要があります。わかりやすいレポートにすることによって、テストの失敗に対する調査・解決にかかるコストを下げれます。
 
@@ -445,20 +447,63 @@ PASS
 対照的にホワイトボックステストは、内部の実装の複雑な部分を詳細に網羅する事ができる利点があります。
 
 
-テストパッケージをどちらにするのかはこれらのどちらの利点を重視するかによって変わるでしょう。筆者は、壊れやすいテスト発生による維持コストの増加の懸念とパッケージのクライアントの視点の２つの利点を重視しています。そのため、ブラックボックステストのなりやすい外部テストパッケージにテストコードを置くようにしています。そのうえで、非公開機能に対して直接テストを書きたいという場合には非公開機能を別パッケージの公開機能として切り出せないか検討した上で、@<code>{export_test.go}の技法を使用するという選択をしています。
+テストパッケージをどちらにするのかはこれらのどちらの利点を重視するかによって変わるでしょう。筆者は、壊れやすいテスト発生による維持コストの増加の懸念とパッケージのクライアントの視点の２つの利点を重視しています。そのため、ブラックボックステストのなりやすい外部テストパッケージにテストコードを置くようにしています。そのうえで、非公開機能に対して直接テストを書きたいという場合には非公開機能を別パッケージの公開機能として切り出せないか検討した上で、最後の手段として@<code>{export_test.go}の技法を使用するという選択をしています。
 
-== テストコードの再利用性を高める
-#@# まだだめだぁ
+== テストヘルパーを活用する
+費用対効果の高いユニットテストを目指す上で、テストコードの可読性やテストコードの追加のしやすさは重要な要素です。テストコードの可読性はドキュメンテーションとしての価値を高め、追加のしやすさは新規テストコードの作成コストの削減に繋がります。これら２つを狙う上でテストヘルパーを作成・利用する方法があります。
 
-毎回のテスト関数で同じコードを書いていくのは非常に面倒です。その機械的な作業を毎回行うのは、テストケースの可読性を低下させる可能性があります。また、毎回の作業になるため、適切なエラーハンドリング・エラーレポーティングの意識が疎かになる危険性があります。
-テストコードの再利用性を高めるために、テストヘルパーを作成・利用する方法があります。
+//list[GetTomorrow][GetTomorrow][go]{
+func GetTomorrow(tm time.Time) time.Time {
+	return tm.AddDate(0, 0, 1)
+}
+//}
 
-たとえば、次のような例を考えます。
+//list[TestGetTomorrowBefore][TestGetTomorrow][go]{
+func TestGetTomorrow(t *testing.T) {
+	jst, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		t.Fatalf("Failed to load JST time Location")
+	}
+	tm := time.Date(2019, time.April, 14, 0, 0, 0, 0, jst)
 
-#@# TODO ヘルパーにできるよねっていう例
+	want := tm.AddDate(0, 0, 1)
+	got := sample.GetTomorrow(tm)
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("GetTomorrow() differs: (-want +got)\n%s", diff)
+	}
+}
+//}
 
-xUTPでも、テストユーティリティを活用してテストの可読性を上げることをひとつの方法として説明されています。テストユーティリティには、Creation MethodとCustom Assertion Methodのふたつの種類があります。
+#@# cmpの紹介をcolumnでかく
+
+//list[TestHelperGetJstLocation][GetJstLocation][go]{
+func GetJstLocation(t *testing.T) *time.Location {
+	t.Helper()
+
+	jst, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		t.Fatalf("Failed to load JST time Location")
+	}
+	return jst
+}
+//}
+
+testing パッケージには、@<code>{*T.Helper}@<fn>{thelper}があります。@<code>{*T.Helper}を呼び出すことでテストヘルパー関数として扱われます。
+
+//list[TestGetTomorrowAfter][TestGetTomorrow][go]{
+func TestGetTomorrowUsingCmp(t *testing.T) {
+	tm := time.Date(2019, time.April, 14, 0, 0, 0, 0, testutil.GetJstLocation(t))
+
+	want := tm.AddDate(0, 0, 1)
+	got := sample.GetTomorrow(tm)
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("GetTomorrow() differs: (-want +got)\n%s", diff)
+	}
+}
+//}
+
+//footnote[thelper][https://golang.org/pkg/testing/#T.Helper]
 
 == おわりに
 
-本章では、費用対効果というユニットテストの考え方とGoのユニットテストの基礎を紹介しました。何か迷った際に、考え方・基礎を抑えておくことで判断にブレが少なくなります。
+本章では、「費用対効果」というユニットテストの作成していく上でのひとつ考え方と、Goのユニットテストの基礎を紹介しました。何か迷った際に、考え方・基礎を抑えておくことで判断にブレが少なくなります。これからユニットテストを書き始める方にとってはひとつの方針として、すでに書いている方にとってはこれまでのコードの振り返りの機会として本章が役立っていれば幸いです。
