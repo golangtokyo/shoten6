@@ -327,7 +327,9 @@ FAIL
 このように、適切なエラーハンドリングが行われておらず全てのエラーでクラッシュしていた場合、プログラマはエラーを直さない限り以降どのような結果が得られるかわかりません。一回の実行結果から得られる情報量がすくないため都度エラーを直しては次のエラーを調査するといった非効率的な方法でユニットテストをメンテナンスすることになります。プログラマ自身のユニットテストメンテナンスコストを鑑みても、適切なエラーハンドリングは重要です。
 
 == テーブル駆動テスト・サブテスト
-Goでは非常に広く使われているユニットテストの技法として、テーブル駆動テストというものがあります。@<list>{FizzBuzzGetMsg}をテーブル駆動テストで書いてみましょう。
+Goでは非常に広く使われているユニットテストの技法として、テーブル駆動テスト@<fn>{wikiTableDrivenDevelopment}というものがあります。@<list>{FizzBuzzGetMsg}をテーブル駆動テストで書いてみましょう。
+
+//footnote[wikiTableDrivenDevelopment][https://github.com/golang/go/wiki/TableDrivenTests]
 
 //list[TestFizzBuzzGetMsgTableDriven][テーブル駆動テスト][go]{
   func TestGetMsg(t *testing.T) {
