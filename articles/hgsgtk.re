@@ -189,7 +189,7 @@ Goの特徴的な言語仕様として、 アサーションが提供されて�
 //footnote[tfatal][https://golang.org/pkg/testing/#T.Fatal]
 //footnote[tfatalf][https://golang.org/pkg/testing/#T.Fatalf]
 
-@<code>{*T.Errorf}では、「対象の関数は失敗した」と記録されますが、実行は継続されます。それに対して、@<code>{*T.Fatalf}では、@<code>{*T.Errorf}と同様に「対象の関数は失敗した」ことを記録しますが、同時に実行を停止し、次のテストケースの実行へと移ります。
+@<code>{*T.Errorf}では、「対象のテストケースが失敗した」と記録されますが、実行は継続されます。それに対して、@<code>{*T.Fatalf}では、@<code>{*T.Errorf}と同様に「対象のテストケースが失敗した」ことを記録しますが、同時に実行を停止し、次のテストケースの実行へと移ります。
 よって、致命的なエラーに対するハンドリングは@<code>{*T.Fatalf}で行い、そうではないエラーに対するハンドリングは、@<code>{*T.Errorf}で行います。
 
 //list[GetNum][sample.go][go]{
