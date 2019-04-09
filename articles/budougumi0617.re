@@ -113,11 +113,12 @@ $ docker run --rm -d -e MYSQL_ALLOW_EMPTY_PASSWORD=yes \
 //}
 
 @<tt>{docker run}コマンドでMySQLのコンテナを起動したあとは、@<tt>{mysql}コマンドを使って動作確認をしておきましょう。
-なお、コンテナ起動直後の数秒間はMySQLの初期化が行われているので、少し時間を置いてから次の`mysql`コマンドを実行してください。
+なお、コンテナ起動直後の数秒間はMySQLの初期化が行われているので、少し時間を置いてから次の@<tt>{mysql}コマンドを実行してください。
 デフォルトで作成されている管理用の@<tt>{database}の情報が取得できたら接続成功です。
 
 //cmd{
-$ mysql -h 127.0.0.1 --port ${SHOTEN6_MYSQL_PORT} -uroot -e "show databases;"
+$ mysql -h 127.0.0.1 --port ${SHOTEN6_MYSQL_PORT} \
+    -u${SHOTEN6_MYSQL_USER} -e "show databases;"
 +--------------------+
 | Database           |
 +--------------------+
@@ -129,13 +130,152 @@ $ mysql -h 127.0.0.1 --port ${SHOTEN6_MYSQL_PORT} -uroot -e "show databases;"
 +--------------------+
 //}
 
-なお、利用後は以下のコマンドで停止させることができます。
+なお、利用後は以下のコマンドでDockerコンテナを停止させることができます。
 
 //cmd{
 $ docker stop mysql_tmp
 //}
 
 == github.com/rubenv/sql-migrateを使ったデータベースのマイグレーション方法
+ローカルにMySQLサーバを準備することができました。次はMySQLサーバにGoから操作するデータを保存するためのデータベースとテーブルを作成します。
+一番簡単な方法は、@<tt>{mysql}コマンドで直接SQLを実行することでしょうが、それではローカル環境以外で同様のデータベースを再現することができません。また、サービス開発をするならば新しいテーブルを追加したり、カラムを追加することもあるでしょう。そのため、ここではマイグレーションツールを使ってデータベースの状態を管理してきます。
+
+今回はGo製のマイグレーションツールである@<tt>{github.com/rubenv/sql-migrate}を使ってマイグレーションを管理します。利用したことがない場合は次の@<tt>{go get }コマンドでローカルにインストールすることが出来ます。
+
+//cmd{
+$ go get -u github.com/rubenv/sql-migrate/sql-migrate
+$ sql-migrate -h
+Usage: sql-migrate [--version] [--help] <command> [<args>]
+
+Available commands are:
+    down      Undo a database migration
+    new       Create a new migration
+    redo      Reapply the last migration
+    skip      Sets the database level to the most recent version available, \
+        without running the migrations
+    status    Show migration status
+    up        Migrates the database to the most recent version available
+//}
+
+@<tt>{sql-migrate}コマンドは予めMySQLサーバ上に@<tt>{database}の定義が必要になるため、@<tt>{CREATE DATABASE}を実行するSQLファイルだけ作成しておきます。次のコマンドで @<tt>{db}ディレクトリとあとでマイグレーション情報を保存するための@<tt>{db/migrations}ディレクトリを作成し、今回利用する@<tt>{sql_sample}データベースを作成するための@<tt>{db/database.sql}を作成します。
+
+//cmd{
+$ mkdir -p db/migrations
+$ cat << EOF > db/database.sql
+CREATE DATABASE IF NOT EXISTS sql_sample;
+EOF
+//}
+
+ここで@<tt>{db/database.sql}とファイルにしておくことで別環境での再現性を確保しておきます。@<tt>{db/database.sql}を使ってデータベースを作成しましょう。
+
+//cmd{
+$ mysql -h 127.0.0.1 --port ${SHOTEN6_MYSQL_PORT} -u${SHOTEN6_MYSQL_USER} < db/database.sql
+//}
+
+もう一度@<tt>{mysql}コマンドで@<tt>{SHOW DATABASES}を実行すれば、@<tt>{sql_sample}データベースが作成されているのがわかります。
+
+//cmd{
+$ mysql -h 127.0.0.1 --port ${SHOTEN6_MYSQL_PORT} \
+    -u${SHOTEN6_MYSQL_USER} -e "show databases;"
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| sql_sample         |
+| sys                |
++--------------------+
+//}
+
+データベースを用意できたら、@<tt>{sql-migrate}コマンド用のデータベースへの接続設定ファイル（@<tt>{dbconfig.yml}）を作成します。@<list>{bd_dbconfig}が設定ファイルの中身です。
+
+//list[bd_dbconfig][./dbconfig.yml]{
+development:
+    dialect: mysql
+    dir: db/migrations
+    # 紙面の都合上改行をいれています。
+    # 正しくは"...@tcp(127.0.0.1:${SHOTEN6_MYSQL_PORT})/sql_sample?..."とつながります。
+    datasource: ${SHOTEN6_MYSQL_USER}:@tcp(127.0.0.1:${SHOTEN6_MYSQL_PORT})\
+    /sql_sample?charset=utf8mb4&collation=utf8mb4_general_ci&parseTime=true
+
+# Dummy setting
+production:
+    dialect: postgres
+    dir: migrations/postgres
+    datasource: dbname=myapp sslmode=disable
+    table: migrations
+//}
+
+文中の@<tt>{datasource}の項目は@<tt>{$\{SHOTEN6_MYSQL_USER\}:@tcp(127.0.0.1:$\{SHOTEN6_MYSQL_PORT\})/sql_sample?charset=utf8mb4&collation=utf8mb4_general_ci&parseTime=true}
+@<tt>{dbconfig.yml}が出来たら一度@<tt>{sql-migrate status}コマンドを実行してみましょう。何もマイグレーションファイルを作っていないので、以下のような表示が出ればデータベースとの接続ができています。
+
+//cmd{
+$ sql-migrate status
++-----------+---------+
+| MIGRATION | APPLIED |
++-----------+---------+
++-----------+---------+
+//}
+
+接続確認が済んだら、マイグレーション用のファイルを作成しましょう。@<tt>{sql-migrate new}コマンドを実行すると、マイグレーション用のSQLファイルが生成されます。
+
+//cmd{
+$ sql-migrate new create_user
+Created migration db/migrations/20190409140628-create_user.sql
+//}
+
+今回は@<list>{bd_entity}のような@<tt>{User}情報をデータベースに保存することにします。
+
+//list[bd_entity][Userの定義]{
+type User struct {
+	ID        int64     `db:"id"`
+	Name      string    `db:"name"`
+	Email     string    `db:"email"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+//}
+
+@<list>{bd_entity}に対応する@<tt>{user}情報を管理するテーブルを作成するマイグレーション定義が@<list>{bd_create_user}です。
+
+//list[bd_create_user][./db/migrations/20190409140628-create_user.sql]{
+-- Sample migration
+
+-- +migrate Up
+CREATE TABLE `user` (
+`id` bigint unsigned PRIMARY KEY AUTO_INCREMENT,
+`name` varchar(255) NOT NULL COMMENT 'user name',
+`email` varchar(255) NOT NULL COMMENT 'e-mail address',
+`created_at` datetime,
+`updated_at` datetime)
+ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ROW_FORMAT=DYNAMIC
+COMMENT='user table is the sample table'
+;
+
+-- +migrate Down
+DROP TABLE IF EXISTS `user`;
+//}
+
+@<tt>{sql-migrate up}コマンドを実行するとマイグレーションが実行されます。
+マイグレーション実行後、@<tt>{sql_sample}データベース上のテーブル情報を確認した結果が次の実行結果です@<fn>{bd_migrate_up}。
+
+//cmd{
+$ sql-migrate up
+Applied 1 migration
+$ mysql -h 127.0.0.1 --port ${SHOTEN6_MYSQL_PORT} -u${SHOTEN6_MYSQL_USER} \
+     -D sql_sample -e "show tables;"
++----------------------+
+| Tables_in_sql_sample |
++----------------------+
+| gorp_migrations      |
+| user                 |
++----------------------+
+//}
+
+@<tt>{user}テーブルがマイグレーションによって作成されました。
+
+//footnote[bd_migrate_up][@<tt>{gorp_migrations}は@<tt>{sql-migrate}が自動生成したマイグレーション情報を管理するためのテーブルです。]
+
 == github.com/go-sql-driver/mysqlを使った基本的なデータベース操作の実装
 
  * github.com/DATA-DOG/go-sqlmockを使った単体テストの書き方
