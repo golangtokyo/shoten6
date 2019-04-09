@@ -95,7 +95,7 @@ FAIL	github.com/hgsgtk/go-snippets/testing-codes/sample	0.008s
 
 このユニットテストの効果とコストの関係性について、『xUnit Test Patterns: Refactoring Test Code』@<fn>{xutpLink}という書籍では、「Economics of Test Automation」という言葉で説明されています。@<img>{hgsgtk-test-economical-graph}をご覧ください。
 
-//footnote[xutpLink][https://www.amazon.co.jp/dp/0131495054/ref=cm_sw_r_tw_dp_U_x_Y8kJCb6EX02F6]
+//footnote[xutpLink][https://www.amazon.co.jp/dp/0131495054]
 
 最初はユニットテストという新しい技術に対する学習・実践コストとして、ユニットテストのコストが嵩む時期が訪れます。しかし、じきにユニットテストに対する習熟や効率化により追加コストが落ち着いてくると、@<img>{hgsgtk-test-economical-graph}のように、ユニットテストがもたらす効果である節約コストと相殺されていきます。
 
