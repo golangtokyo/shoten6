@@ -95,7 +95,7 @@ FAIL	github.com/hgsgtk/go-snippets/testing-codes/sample	0.008s
 
 このユニットテストの効果とコストの関係性について、『xUnit Test Patterns: Refactoring Test Code』@<fn>{xutpLink}という書籍では、「Economics of Test Automation」という言葉で説明されています。@<img>{hgsgtk-test-economical-graph}をご覧ください。
 
-//footnote[xutpLink][https://www.amazon.co.jp/dp/0131495054]
+//footnote[xutpLink][@<href>{https://www.amazon.co.jp/dp/0131495054}]
 
 最初はユニットテストという新しい技術に対する学習・実践コストとして、ユニットテストのコストが嵩む時期が訪れます。しかし、じきにユニットテストに対する習熟や効率化により追加コストが落ち着いてくると、@<img>{hgsgtk-test-economical-graph}のように、ユニットテストがもたらす効果である節約コストと相殺されていきます。
 
@@ -180,15 +180,16 @@ FAIL
 == 適切なエラーハンドリング
 Goの特徴的な言語仕様として、 アサーションが提供されていない点が挙げられます。これは、@<href>{https://golang.org/doc/faq#assertions}にて理由が説明されていますが、「アサートが適切なエラーハンドリングとエラーレポートを考慮せずに済ますためのツールとして使われている」という経験上の懸念より提供されていません。適切なエラーハンドリングとはなんでしょうか。
 
+//footnote[goFaqAssertions][@<href>{https://golang.org/doc/faq#assertions}]
 適切なエラーハンドリングについて、「致命的ではないエラーが発生した際にクラッシュさせずに処理を継続させることである」と説明されています。
 適切なエラーハンドリングを行うことは、費用対効果の高いユニットテストを得るためにも非常に有用です。
 
 では、Goにおいて適切なエラーハンドリングを実現するためには、どのようにすればよいのでしょうか。Goでは testing パッケージが提供する @<code>{*T.Error}@<fn>{terror}/@<code>{*T.Errorf}@<fn>{terrorf}・@<code>{*T.Fatal}@<fn>{tfatal}/@<code>{*T.Fatalf}@<fn>{tfatalf}というAPIが提供しています。それらを適切に使い分けることによって、適切なエラーハンドリングを実現します。
 
-//footnote[terror][https://golang.org/pkg/testing/#T.Error]
-//footnote[terrorf][https://golang.org/pkg/testing/#T.Errorf]
-//footnote[tfatal][https://golang.org/pkg/testing/#T.Fatal]
-//footnote[tfatalf][https://golang.org/pkg/testing/#T.Fatalf]
+//footnote[terror][@<href>{https://golang.org/pkg/testing/#T.Error}]
+//footnote[terrorf][@<href>{https://golang.org/pkg/testing/#T.Errorf}]
+//footnote[tfatal][@<href>{https://golang.org/pkg/testing/#T.Fatal}]
+//footnote[tfatalf][@<href>{https://golang.org/pkg/testing/#T.Fatalf}]
 
 @<code>{*T.Errorf}では、「対象のテストケースが失敗した」と記録されますが、実行は継続されます。それに対して、@<code>{*T.Fatalf}では、@<code>{*T.Errorf}と同様に「対象のテストケースが失敗した」ことを記録しますが、同時に実行を停止し、次のテストケースの実行へと移ります。
 よって、致命的なエラーに対するハンドリングは@<code>{*T.Fatalf}で行い、そうではないエラーに対するハンドリングは、@<code>{*T.Errorf}で行います。
@@ -329,7 +330,7 @@ FAIL
 == テーブル駆動テスト・サブテスト
 Goでは非常に広く使われているユニットテストの技法として、テーブル駆動テスト@<fn>{wikiTableDrivenDevelopment}というものがあります。@<list>{FizzBuzzGetMsg}をテーブル駆動テストで書いてみましょう。
 
-//footnote[wikiTableDrivenDevelopment][https://github.com/golang/go/wiki/TableDrivenTests]
+//footnote[wikiTableDrivenDevelopment][@<href>{https://github.com/golang/go/wiki/TableDrivenTests}]
 
 //list[TestFizzBuzzGetMsgTableDriven][テーブル駆動テスト][go]{
   func TestGetMsg(t *testing.T) {
@@ -366,7 +367,7 @@ Goでは非常に広く使われているユニットテストの技法として
 
 加えて、サブテストを使うことができます。サブテストは@<code>{*T.Run}@<fn>{trun}を使用することによって実現します。@<list>{TestFizzBuzzGetMsgTableDriven}をサブテストを使うように書き換えます。
 
-//footnote[trun][https://golang.org/pkg/testing/#T.Run]
+//footnote[trun][@<href>{https://golang.org/pkg/testing/#T.Run}]
 
 //list[TestFizzBuzzGetMsgSubTest][サブテスト][go]{
 func TestGetMsg(t *testing.T) {
@@ -436,7 +437,7 @@ PASS
 
 さらに、@<code>{*T.Parallel}@<fn>{tparallel}を合わせて使うことで並行でのユニットテスト実行が可能になります。並行処理が可能になることでテストケース全体の実行時間を短縮することができます。
 
-//footnote[tparallel][https://golang.org/pkg/testing/#T.Parallel]
+//footnote[tparallel][@<href>{https://golang.org/pkg/testing/#T.Parallel}]
 
 == 外部テストパッケージ
 テストコードのパッケージ名について、対象のパッケージと同一のパッケージ名にするか、@<code>{xxx_test}という外部テストパッケージを行う２つの選択肢があります。
@@ -448,8 +449,8 @@ PASS
 
 ===[/column]
 
-//footnote[tenntenn][https://twitter.com/tenntenn]
-//footnote[exportTestArticle][https://tech.mercari.com/entry/2018/08/08/080000]
+//footnote[tenntenn][@<href>{https://twitter.com/tenntenn}]
+//footnote[exportTestArticle][@<href>{https://tech.mercari.com/entry/2018/08/08/080000}]
 
 費用対効果の高いユニットテストを目指すために、テストパッケージはどちらの方法を選択するべきなのでしょうか。これについて知るために両者のメリット・デメリットを知る必要があります。これを考えるための材料として、ブラックボックステスト・ホワイトボックステストという２つの概念をおさえましょう。
 
@@ -519,7 +520,7 @@ func TestGetTomorrowUsingCmp(t *testing.T) {
 }
 //}
 
-//footnote[thelper][https://golang.org/pkg/testing/#T.Helper]
+//footnote[thelper][@<href>{https://golang.org/pkg/testing/#T.Helper}]
 
 == おわりに
 
