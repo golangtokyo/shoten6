@@ -490,12 +490,16 @@ func TestGetTomorrow(t *testing.T) {
 	want := tm.AddDate(0, 0, 1)
 	got := sample.GetTomorrow(tm)
 	if diff := cmp.Diff(got, want); diff != "" {
-		t.Errorf("GetTomorrow() differs: (-want +got)\n%s", diff)
+		t.Errorf("GetTomorrow() differs: (-got +want)\n%s", diff)
 	}
 }
 //}
 
-#@# cmpの紹介をcolumnでかく
+===[column] 値比較のライブラリgithub.com/google/go-cmp
+@<list>{TestGetTomorrowBefore}で@<code>{cmp.Diff}という関数にて値を比較しています。これは、github.com/google/go-cmp@<fn>{gocmp}というGoogle非公式の値比較ライブラリが提供する機能を利用しています。github.com/google/go-cmpは、JSON形式の文字列や構造体の値をテストする際に便利なライブラリなので、テストコードでの値比較手段として採用を検討してみるとよいでしょう。
+
+//footnote[gocmp][@<href>{https://github.com/google/go-cmp}]
+===[/column]
 
 //list[TestHelperGetJstLocation][GetJstLocation][go]{
 func GetJstLocation(t *testing.T) *time.Location {
@@ -518,7 +522,7 @@ func TestGetTomorrowUsingCmp(t *testing.T) {
 	want := tm.AddDate(0, 0, 1)
 	got := sample.GetTomorrow(tm)
 	if diff := cmp.Diff(got, want); diff != "" {
-		t.Errorf("GetTomorrow() differs: (-want +got)\n%s", diff)
+		t.Errorf("GetTomorrow() differs: (-got +want)\n%s", diff)
 	}
 }
 //}
