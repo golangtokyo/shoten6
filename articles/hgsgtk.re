@@ -112,13 +112,13 @@ FAIL	github.com/hgsgtk/go-snippets/testing-codes/sample	0.008s
 == 適切なエラーレポート
 ユニットテスト自体を維持するコストが発生する点について「費用対効果の高いユニットテストという考え方」にて説明しました。維持コストを最小限にするために意識するべき点のひとつとして、「適切なエラーレポート」という観点があります。ユニットテストが失敗した際に「なぜ失敗したのか」について、それを見るプログラマに対してわかりやすいレポートである必要があります。わかりやすいレポートにすることによって、ユニットテストの失敗に対する調査・解決にかかるコストを下げれます。
 
-では、適切なエラーレポートとはなんでしょうか。@<href>{https://golang.org/doc/faq#assertions}にて説明がありますが、直接的かつ適切な内容とされています。
+では、適切なエラーレポートとはなんでしょうか。Goの公式FAQの"Why does Go not have assertions?"@<fn>{goFaqAssertions}にて説明がありますが、直接的かつ適切な内容とされています。
 具体的には、「施行した内容」・「どのような入力を行ったか」・「実際の結果」・「期待される結果」の４つの内容が含まれていることが望ましいです。
 
-適切なエラーレポートを知るために、逆に一度適切なエラーレポートができていないサンプルを見てましょう。@<list>{InStatusList}に対して、ユニットテストを書いてみます。
+適切なエラーレポートを知るために、一度適切なエラーレポートができていないサンプルを見てましょう。@<list>{InStatusList}に対して、ユニットテストを書いてみます。
 
 //list[InStatusList][sample.go][go]{
-  func InStatusList(x string) bool {
+func InStatusList(x string) bool {
 	ls := []string{"drafted", "published"}
 	for _, s := range ls {
 		if x == s {
@@ -130,16 +130,16 @@ FAIL	github.com/hgsgtk/go-snippets/testing-codes/sample	0.008s
 //}
 
 //list[TestInStatusListNotReadable][適切なエラーレポートが設定できていない例][go]{
-  func TestInStatusList(t *testing.T) {
-  	var x string
-  	var want bool
+func TestInStatusList(t *testing.T) {
+	var x string
+	var want bool
 
-  	x = "deleted" // 実は deleted というステータスもあった
-  	want = true
-  	if got := sample.InStatusList(x); got != want {
-  		t.Errorf("unexpected value %t", got)
-  	}
-  }
+	x = "deleted" // 実は deleted というステータスもあった
+	want = true
+	if got := sample.InStatusList(x); got != want {
+		t.Errorf("unexpected value %t", got)
+	}
+}
 //}
 
 期待した結果が得られなかった場合、どのような結果が得られたかだけをエラーレポートの内容に含めました。このテストコードを実行した場合、@<list>{ExectuteTestInStatusListNotReadable}の結果が得られます。
@@ -151,38 +151,37 @@ FAIL	github.com/hgsgtk/go-snippets/testing-codes/sample	0.008s
 FAIL
 //}
 
-さてこのエラーメッセージを見た時、何がわかったでしょうか。「なにやら期待していない false が返ってきたようだ」という情報は汲み取れます。しかし、「何の検証を試みて得られた結果なのか？」・「どのような入力（引数）が与えられたのか？」。「何が期待値なのか？」についてエラーレポートからはわかりません。このエラーレポートを受け取ったプログラマは対象のテストコードを慎重に読み解くことでしか何が起きているのかが理解できません。テストケースが少ないうちはこのようなエラーレポートでもメンテナンスできるかもしれませんが、ケースが多くなってきて複数箇所でエラーが発生するようになるとこのようなエラーレポートではメンテナンスが苦しくなってきます。では、より適切なエラーレポートをしているテストケースを見てみましょう。
+さてこのエラーメッセージを見た時、何がわかったでしょうか。「なにやら期待していない false が返ってきたようだ」という情報は汲み取れます。しかし、「何の検証を試みて得られた結果なのか？」・「どのような入力（引数）が与えられたのか？」。「何が期待値なのか？」についてエラーレポートからはわかりません。このエラーレポートを受け取ったプログラマは失敗したテストコード・テスト対照の動作コードを慎重に読み解くことでしか何が起きているのかが理解できません。テストケースが少ないうちはこのようなエラーレポートでもメンテナンスできるかもしれませんが、ケースが多くなってきて複数箇所でエラーが発生するようになるとこのようなエラーレポートではメンテナンスが苦しくなってきます。では、より適切なエラーレポートをしているテストケースを見てみましょう。
 
 //list[TestInStatusListReadable][適切なエラーレポートを設定した例][go]{
-  func TestInStatusList(t *testing.T) {
-  	var x string
-  	var want bool
+func TestInStatusList(t *testing.T) {
+	var x string
+	var want bool
 
-  	x = "deleted"
-  	want = true
-  	if got := sample.InStatusList(x); got != want {
-  		t.Errorf("InStatusList(%s) = %t, want %t", x, got, want)
-  	}
-  }
+	x = "deleted"
+	want = true
+	if got := sample.InStatusList(x); got != want {
+		t.Errorf("InStatusList(%s) = %t, want %t", x, got, want)
+	}
+}
 //}
 
 より適切なエラーレポートを行う一つの形式として、@<code>{f(x) = y, want z}の形式があります。f(x)では試みた結果と入力、yは得られた結果、zは期待値を表します。@<list>{TestInStatusListReadable}の例では、@<code>{t.Errorf("InStatusList(%s) = %t, want %t", x, got, want)}にて、エラーレポートしています。これを実行すると@<list>{ExecuteTestInStatusListReadable}の結果が得られます。
 
 //list[ExecuteTestInStatusListReadable][より適切なエラーレポートが得られた例][]{
-  === RUN   TestInStatusList
-  --- FAIL: TestInStatusList (0.00s)
-      sample_test.go:42: InStatusList(deleted) = false, want true
-  FAIL
+=== RUN   TestInStatusList
+--- FAIL: TestInStatusList (0.00s)
+    sample_test.go:42: InStatusList(deleted) = false, want true
+FAIL
 //}
 
 @<list>{ExectuteTestInStatusListNotReadable}の結果と比較して、エラーレポートから得られる情報量が増え、「@<code>{InStatusList}の検証を試み deleted という文字列を入力した際に false という結果が得られたが、期待値は true であった。」と直接的かつ十分な情報量を読み取ることができます。理想的には、保守するプログラマがユニットテストの失敗を解明するためにソースコードを読む必要がないようにするべきです。
 
 == 適切なエラーハンドリング
-Goの特徴的な言語仕様として、 アサーションが提供されていない点が挙げられます。これは、@<href>{https://golang.org/doc/faq#assertions}にて理由が説明されていますが、「アサートが適切なエラーハンドリングとエラーレポートを考慮せずに済ますためのツールとして使われている」という経験上の懸念より提供されていません。適切なエラーハンドリングとはなんでしょうか。
+
+Goの特徴的な言語仕様として、 アサーションが提供されていない点が挙げられます。これは、Goの公式FAQの"Why does Go not have assertions?"@<fn>{goFaqAssertions}にて理由が説明されていますが、「アサートが適切なエラーハンドリングとエラーレポートを考慮せずに済ますためのツールとして使われている」という経験上の懸念より提供されていません。このことからも、Goのユニットテストにおいて、適切なエラーハンドリングが重要なことがわかります。適切なエラーハンドリングとはなんでしょうか。適切なエラーハンドリングについて、「致命的ではないエラーが発生した際にクラッシュさせずに処理を継続させることである」と説明されています。
 
 //footnote[goFaqAssertions][@<href>{https://golang.org/doc/faq#assertions}]
-適切なエラーハンドリングについて、「致命的ではないエラーが発生した際にクラッシュさせずに処理を継続させることである」と説明されています。
-適切なエラーハンドリングを行うことは、費用対効果の高いユニットテストを得るためにも非常に有用です。
 
 では、Goにおいて適切なエラーハンドリングを実現するためには、どのようにすればよいのでしょうか。Goでは testing パッケージが提供する @<code>{*T.Error}@<fn>{terror}/@<code>{*T.Errorf}@<fn>{terrorf}・@<code>{*T.Fatal}@<fn>{tfatal}/@<code>{*T.Fatalf}@<fn>{tfatalf}というAPIが提供しています。それらを適切に使い分けることによって、適切なエラーハンドリングを実現します。
 
@@ -195,35 +194,35 @@ Goの特徴的な言語仕様として、 アサーションが提供されて�
 よって、致命的なエラーに対するハンドリングは@<code>{*T.Fatalf}で行い、そうではないエラーに対するハンドリングは、@<code>{*T.Errorf}で行います。
 
 //list[GetNum][sample.go][go]{
-  package sample
+package sample
 
-  import (
-  	"strconv"
+import (
+	"strconv"
 
-  	"github.com/pkg/errors"
-  )
+	"github.com/pkg/errors"
+)
 
-  func GetNum(str string) (int, error) {
-  	num, err := strconv.Atoi(str)
-  	if err != nil {
-  		return 0, errors.Wrapf(err, "GetNum failed converting %#v", str)
-  	}
-  	return num, nil
-  }
+func GetNum(str string) (int, error) {
+	num, err := strconv.Atoi(str)
+	if err != nil {
+		return 0, errors.Wrapf(err, "GetNum failed converting %#v", str)
+	}
+	return num, nil
+}
 //}
 
 //list[TestGetNum][sample_test.go][go]{
-  func TestGetNum(t *testing.T) {
-  	str := "7"
-  	got, err := sample.GetNum(str)
-  	if err != nil {
-  		t.Fatalf("GetNum(%s) caused unexpected error '%#v'", str, err)
-  	}
-  	want := 7
-  	if got != want {
-  		t.Errorf("GetNum(%s) = %d, want %d", str, got, want)
-  	}
-  }
+func TestGetNum(t *testing.T) {
+	str := "7"
+	got, err := sample.GetNum(str)
+	if err != nil {
+		t.Fatalf("GetNum(%s) caused unexpected error '%#v'", str, err)
+	}
+	want := 7
+	if got != want {
+		t.Errorf("GetNum(%s) = %d, want %d", str, got, want)
+	}
+}
 //}
 
 ユニットテストにおいて致命的なエラーとして、テスト対象を実行・検証する前準備の処理の失敗が挙げられます。このような、処理の継続が不可能なものに対してはユニットテストをクラッシュさせることが効果的です。
@@ -232,78 +231,78 @@ Goの特徴的な言語仕様として、 アサーションが提供されて�
 適切なエラーハンドリングを行うことによって、致命的ではないエラーである以上一回の実行で多くのエラーをプログラマはユニットテストの失敗結果を得ることができます。適切なエラーハンドリングができていない例として@<list>{TestFizzBuzzGetMsg}のようなテストコードが挙げられます。
 
 //list[FizzBuzzGetMsg][fizzbuzz.go][go]{
-  package fizzbuzz
+package fizzbuzz
 
-  import "strconv"
+import "strconv"
 
-  func GetMsg(num int) string {
-  	var res string
-  	switch {
-  	case num%15 == 0:
-  		res = "FizzBuzz"
-  	case num%5 == 0:
-  		res = "Buzz"
-  	case num%3 == 0:
-  		res = "Fizz"
-  	default:
-  		res = strconv.Itoa(num)
-  	}
-  	return res
-  }
+func GetMsg(num int) string {
+	var res string
+	switch {
+	case num%15 == 0:
+		res = "FizzBuzz"
+	case num%5 == 0:
+		res = "Buzz"
+	case num%3 == 0:
+		res = "Fizz"
+	default:
+		res = strconv.Itoa(num)
+	}
+	return res
+}
 //}
 
 //list[TestFizzBuzzGetMsg][fizzbuzz_test.go][go]{
-  func TestGetMsg(t *testing.T) {
-  	var num int
-  	var want string
+func TestGetMsg(t *testing.T) {
+	var num int
+	var want string
 
-    num = 15
-  	want = "FizzBuzz"
-  	if got := fizzbuzz.GetMsg(num); got != want {
-  		t.Fatalf("GetMsg(%d) = %s, want %s", num, got, want)
-  	}
+  num = 15
+	want = "FizzBuzz"
+	if got := fizzbuzz.GetMsg(num); got != want {
+		t.Fatalf("GetMsg(%d) = %s, want %s", num, got, want)
+	}
 
-  	num = 5
-  	want = "Buzz"
-  	if got := fizzbuzz.GetMsg(num); got != want {
-  		t.Fatalf("GetMsg(%d) = %s, want %s", num, got, want)
-  	}
+	num = 5
+	want = "Buzz"
+	if got := fizzbuzz.GetMsg(num); got != want {
+		t.Fatalf("GetMsg(%d) = %s, want %s", num, got, want)
+	}
 
-  	num = 3
-  	want = "Fizz"
-  	if got := fizzbuzz.GetMsg(num); got != want {
-  		t.Fatalf("GetMsg(%d) = %s, want %s", num, got, want)
-  	}
+	num = 3
+	want = "Fizz"
+	if got := fizzbuzz.GetMsg(num); got != want {
+		t.Fatalf("GetMsg(%d) = %s, want %s", num, got, want)
+	}
 
-  	num = 1
-  	want = "1"
-  	if got := fizzbuzz.GetMsg(num); got != want {
-  		t.Fatalf("GetMsg(%d) = %s, want %s", num, got, want)
-  	}
-  }
+	num = 1
+	want = "1"
+	if got := fizzbuzz.GetMsg(num); got != want {
+		t.Fatalf("GetMsg(%d) = %s, want %s", num, got, want)
+	}
+}
 //}
 
 すべてのエラーを、@<code>{*T.Fatalf}でハンドリングでしています。ユニットテストが通っている間はこれでも問題ないように見えるかもしれません。では、@<list>{FizzBuzzGetMsg}に２箇所バグが侵入してしまったケースを考えてみましょう。
 
 //list[BuggFizzBuzzGetMsg][fizzbuzz.go][go]{
-  package fizzbuzz
+package fizzbuzz
 
-  import "strconv"
+import "strconv"
 
-  func GetMsg(num int) string {
-  	var res string
-  	switch {
-  	case num%16 == 0: // もともとは、num%15
-  		res = "FizzBuzz"
-  	case num%5 == 0:
-  		res = "Buzz"
-  	case num%4 == 0: // もともとは、num%3
-  		res = "Fizz"
-  	default:
-  		res = strconv.Itoa(num)
-  	}
-  	return res
-  }
+func GetMsg(num int) string {
+	var res string
+	switch {
+	case num%16 == 0: // もともとは、num%15
+		res = "FizzBuzz"
+	case num%5 == 0:
+		res = "Buzz"
+	case num%4 == 0: // もともとは、num%3
+		res = "Fizz"
+	default:
+		res = strconv.Itoa(num)
+	}
+	return res
+}
 //}
 
 @<list>{BuggFizzBuzzGetMsg}の変更によって２箇所のバグが侵入しました。ここで、@<list>{TestFizzBuzzGetMsg}を実行してみましょう。
@@ -333,34 +332,34 @@ Goでは非常に広く使われているユニットテストの技法として
 //footnote[wikiTableDrivenDevelopment][@<href>{https://github.com/golang/go/wiki/TableDrivenTests}]
 
 //list[TestFizzBuzzGetMsgTableDriven][テーブル駆動テスト][go]{
-  func TestGetMsg(t *testing.T) {
-  	tests := []struct {
-  		num  int
-  		want string
-  	}{
-  		{
-  			num:  15,
-  			want: "FizzBuzz",
-  		},
-  		{
-  			num:  5,
-  			want: "Buzz",
-  		},
-  		{
-  			num:  3,
-  			want: "Fizz",
-  		},
-  		{
-  			num:  1,
-  			want: "1",
-  		},
-  	}
-  	for _, tt := range tests {
-  		if got := fizzbuzz.GetMsg(tt.num); got != tt.want {
-  			t.Errorf("GetMsg(%d) = %s, want %s", tt.num, got, tt.want)
-  		}
-  	}
-  }
+func TestGetMsg(t *testing.T) {
+	tests := []struct {
+		num  int
+		want string
+	}{
+		{
+			num:  15,
+			want: "FizzBuzz",
+		},
+		{
+			num:  5,
+			want: "Buzz",
+		},
+		{
+			num:  3,
+			want: "Fizz",
+		},
+		{
+			num:  1,
+			want: "1",
+		},
+	}
+	for _, tt := range tests {
+		if got := fizzbuzz.GetMsg(tt.num); got != tt.want {
+			t.Errorf("GetMsg(%d) = %s, want %s", tt.num, got, tt.want)
+		}
+	}
+}
 //}
 
 テーブル駆動テストでは、必要に応じた新たな表の項目を追加するのが簡単であり、判定ロジックの複製の不要です。そのため、このユニットテストに対して修正・追加したいプログラマの工数を最小限である維持コストの低いユニットテストを実現する方法になります。合わせて、テストコードを読む際にも、対象関数のテストパターンが表にかかれているので可読性の高いドキュメンテーションとしての価値も高いユニットテストとなります。さらに、判定ロジックの複製が不要な分、これまで説明してきた「適切なエラーハンドリング」・「適切なエラーレポート」に集中することができます。
@@ -426,13 +425,13 @@ PASS
 サブテストを活用することは費用対効果の高いユニットテストの実現に有用です。まず、それぞれのテストケースにテストケース名を与えることができます。これは、そのテストコードを読むプログラマが意図を理解しやすい可読性の高いテストコードに繋がります。また、特定のサブテストのみを実行することができます。たとえば、@<code>{divisible_by_15}のみを実行したい場合は、@<code>{--run}オプションをtestコマンドにわたすことで実現できます。特定のサブテストのみを実行できることによりデバッグ時に必要最小限のユニットテスト実行で済むためデバッグコストの削減に繋がります。
 
 //list[ExectuteSpeficiedTestFizzBuzzGetMsgSubTest][特定のサブテストを実行する][]{
-  % go test github.com/hgsgtk/go-snippets/testing-codes/fizzbuzz --run TestGetMsg/divisible_by_15 -v
-  === RUN   TestGetMsg
-  === RUN   TestGetMsg/divisible_by_15
-  --- PASS: TestGetMsg (0.00s)
-      --- PASS: TestGetMsg/divisible_by_15 (0.00s)
-  PASS
-  ok  	github.com/hgsgtk/go-snippets/testing-codes/fizzbuzz	0.008s
+% go test github.com/hgsgtk/go-snippets/testing-codes/fizzbuzz --run TestGetMsg/divisible_by_15 -v
+=== RUN   TestGetMsg
+=== RUN   TestGetMsg/divisible_by_15
+--- PASS: TestGetMsg (0.00s)
+    --- PASS: TestGetMsg/divisible_by_15 (0.00s)
+PASS
+ok  	github.com/hgsgtk/go-snippets/testing-codes/fizzbuzz	0.008s
 //}
 
 さらに、@<code>{*T.Parallel}@<fn>{tparallel}を合わせて使うことで並行でのユニットテスト実行が可能になります。並行処理が可能になることでテストケース全体の実行時間を短縮することができます。
