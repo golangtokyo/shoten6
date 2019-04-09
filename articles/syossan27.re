@@ -91,7 +91,7 @@ Kafkaは高スループットかつ耐障害性において他のメッセージ
 ==== イベントソーシング
 
 イベントソーシングとは、イベントを永続化させ必要に応じてリプレイすることで状態を作り出すアーキテクチャで、永続させるイベントストアとしてKafkaを用いる事ができます。  
-注意点として、リプレイに必要なデータを保持するtopicの永続化に伴う適切なLog Compaction設定や、イベントをconsumeするtopic・リプライの中間データ用topicの適切な分割・設定などがあります。
+注意点として、リプレイに必要なデータを保持するTopicの永続化に伴う適切なLog Compaction設定や、イベントをconsumeするTopic・リプライの中間データ用Tnopicの適切な分割・設定などがあります。
 
 //footnote[Kafka-usecase][@<href>{https://Kafka.apache.org/uses}]
 //footnote[rabbitmq][@<href>{https://www.rabbitmq.com/}]
@@ -153,7 +153,7 @@ kafka-goは、他２つのライブラリより後発のライブラリで、sar
 % cd kafka-docker
 //}
 
-さて、ここでdocker-compose upで立ち上げたいところですが、その前に１点だけdocker-compose.ymlのKAFKA_ADVERTISED_HOST_NAMEに修正を加えます。
+さて、ここで@<code>{docker-compose up}で立ち上げたいところですが、その前に１点だけdocker-compose.ymlのKAFKA_ADVERTISED_HOST_NAMEに修正を加えます。
 
 //listnum[docker-compose.yml][Docker Compose設定][yaml]{
 version: '2'
@@ -191,7 +191,7 @@ Creating kafka-docker_kafka_3     ... done
 % tar -xzf kafka_2.12-2.2.0.tgz
 //}
 
-それでは最初にtopicsの作成、その後Producerを実行します。実行に際してKafka Brokerのポート番号が必要になりますので、kafka-dockerで立ち上げたKafka Brokerの情報を取得してから実行します。
+それでは最初にTopicの作成、その後Producerを実行します。実行に際してKafka Brokerのポート番号が必要になりますので、kafka-dockerで立ち上げたKafka Brokerの情報を取得してから実行します。
 
 //list[kafka-console-producer][Producerの実行][]{
 % cd kafka-docker
@@ -203,13 +203,13 @@ kafka-docker_kafka_2     0.0.0.0:32802->9092/tcp
 kafka-docker_kafka_3     0.0.0.0:32803->9092/tcp
 kafka-docker_zookeeper_1 0.0.0.0:2181->2181/tcp, 22/tcp, 2888/tcp, 3888/tcp
 
-// test topicの作成。今回はBrokerを３つ動かしているため、Replicas・Partitionsともに３を設定しています。
+// test Topicの作成。今回はBrokerを３つ動かしているため、Replicas・Partitionsともに３を設定しています。
 % ./kafka-topics.sh --create \
     --zookeeper localhost:2181 \
     --replication-factor 3 \
     --partitions 3 --topic test
 
-// test topicの情報を確認
+// test Topicの情報を確認
 % ./kafka-topics.sh --describe --zookeeper localhost:2181 --topic test
 Topic:test	PartitionCount:3	ReplicationFactor:3	Configs:
 Partition: 0 Leader: 1002 Replicas: 1002,1001,1003 Isr: 1002,1001,1003
@@ -229,7 +229,7 @@ Partition: 2 Leader: 1001 Replicas: 1001,1003,1002 Isr: 1001,1003,1002
     --topic test --from-beginning
 //}
 
-これでtest topicを介したメッセージングの準備は出来ました。Producerを実行しているプロセスで何か文字を打ってみましょう。Consumerを実行しているプロセスにProducerで打った文字が表示されればKafka Brokerが正常に動いている証です。
+これでtest Topicを介したメッセージングの準備は出来ました。Producerを実行しているプロセスで何か文字を打ってみましょう。Consumerを実行しているプロセスにProducerで打った文字が表示されればKafka Brokerが正常に動いている証です。
 
 //footnote[docker-install][@<href>{https://docs.docker.com/install/#supported-platforms}]
 //footnote[docker-compose-install][@<href>{https://docs.docker.com/compose/install/#install-compose}]
@@ -260,11 +260,11 @@ func main() {
 
 	// Kafka Brokerにへのメッセージ送信が成功したかどうかの条件を設定
 	//   WaitForAll：
-  //     送信メッセージがmin.insync.replicasで設定されたBrokerの数だけレプリケーションが成功した場合に成功とする
+	//     送信メッセージがmin.insync.replicasで設定されたBrokerの数だけレプリケーションが成功した場合に成功とする
 	// 	 WaitForLocal：
-  //     送信メッセージがリーダーとなっているBrokerに書き込みされた場合に成功とする
+	//     送信メッセージがリーダーとなっているBrokerに書き込みされた場合に成功とする
 	// 	 NoResponse：
-  //     送信メッセージが書き込みされたか否かに関わらず成功とする
+	//     送信メッセージが書き込みされたか否かに関わらず成功とする
 	config.Producer.RequiredAcks = sarama.WaitForAll
 
 	// メッセージ送信の再試行回数（デフォルトは3）
@@ -274,7 +274,7 @@ func main() {
 	// SyncProducerを使用する場合には有効が必須
 	config.Producer.Return.Successes = true
 
-  // 有効にするとメッセージ送信失敗時にErrors channelに対してデータが送信される
+	// 有効にするとメッセージ送信失敗時にErrors channelに対してデータが送信される
 	// SyncProducerを使用する場合には有効が必須（デフォルトは有効）
 	config.Producer.Return.Errors = true
 
@@ -283,7 +283,7 @@ func main() {
 	if err != nil {
 		log.Fatalln("failed create producer", err)
 	}
-  defer producer.Close()
+	defer producer.Close()
 
 	// メッセージの送信
 	partition, offset, err := producer.SendMessage(
@@ -300,7 +300,7 @@ func main() {
 }
 //}
 
-@<list>{SyncProducer}はコマンド引数として渡したBrokerのアドレスに対して、「Hello World」というメッセージをtest topicに送信する簡単なものになっています。実装としてはProducerのconfigを諸々設定し、Producerを作成・メッセージの送信という流れになっており、そこまで難しくないでしょう。
+@<list>{SyncProducer}はコマンド引数として渡したBrokerのアドレスに対して、「Hello World」というメッセージをtest Topicに送信する簡単なものになっています。実装としてはProducerのconfigを諸々設定し、Producerを作成・メッセージの送信という流れになっており、そこまで難しくないでしょう。
 さて、それでは試しにこちらのコードを動かしてConsumerにメッセージが届くかどうか見てみましょう。先程と同じようにProducerとConsumerは別々のプロセスで立ち上げることに注意してください。
 
 //list[run-producer][Producerの実行][]{
@@ -404,7 +404,7 @@ func main() {
 	defer producer.Close()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-    // URLクエリパラメータの取得
+		// URLクエリパラメータの取得
 		query, err := url.ParseQuery(r.URL.RawQuery)
 		if err != nil {
 			w.WriteHeader(500)
@@ -627,7 +627,7 @@ config.Consumer.Group.Heartbeat.Interval = 3 * time.Second
 // custom partition割り当てで扱うが、通常は特に気にしなくても良い
 config.Consumer.Group.Member.UserData
 
-// topic partitionにメンバーを割り当てるstrategyの設定（デフォルトはBalanceStrategyRange）
+// Topic partitionにメンバーを割り当てるstrategyの設定（デフォルトはBalanceStrategyRange）
 config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRange
 
 // リバランスが行われて、Consumer Groupに参加する時の許容時間（デフォルトは60秒）
