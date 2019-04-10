@@ -551,7 +551,7 @@ func foo() {
  * @<code>{func (tx *Tx) QueryContext(ctx context.Context, query string, args ...interface{\}) (*Rows, error)}
 
 
-@<code>{*sql.DB}オブジェクトは複数のゴルーチンから利用されても安全に利用できることがGoDocに明記されています@<fn>{sql_db}。データベースへのコネクションプールと思えばよいようです。
+@<code>{*sql.DB}オブジェクトはデータベースへのコネクションプールを司るデータベースハンドルです。複数のゴルーチンから利用されても安全に利用できることがGoDocに明記されています@<fn>{sql_db}。
 また、一度 @<code>{sql.Open}するだけでよく何回も@<code>{Open}と @<code>{Close}するものでもないことがGoDocに明記されています@<fn>{sql_open}。
 
 //footnote[sql_db][@<href>{https://golang.org/pkg/database/sql/#DB}]
