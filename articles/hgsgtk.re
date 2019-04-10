@@ -44,7 +44,7 @@ func TestName(t *testing.T) {
 
 テスト関数名は、 @<code>{Test} で始め、以降の接頭辞 @<code>{Name} は大文字で始める必要があります。また、引数定義には、@<code>{*testing.T}を設定します。
 
-ひとつ例を見てましょう。hello と返却する@<code>{SayHello()}関数があるとします。
+ひとつ例を見てましょう。文字列"hello" を返却する@<code>{SayHello()}関数があるとします。
 
 //list[sampleHello][SayHello()の実装][go]{
 package sample
@@ -57,6 +57,14 @@ func SayHello() string {
 この場合、@<list>{sampleTestHello}のようなテストコードを作成することができます。
 
 //list[sampleTestHello][SayHello()に対するテストコード][go]{
+package sample_test
+
+import (
+	"testing"
+
+	"github.com/hgsgtk/go-snippets/testing-codes/sample"
+)
+
 func TestSayHello(t *testing.T) {
 	want := "hello"
 	// SayHelloの戻り値が期待値と異なる場合エラーとして処理する
@@ -98,9 +106,9 @@ FAIL	sample	0.008s
 
 どれもユニットテストがもたらす重要な素晴らしいメリットです。しかし、一方でユニットテストはそれ自体のコストがあります。具体的には次のようなコストが挙げられます。
 
-* 新規テストコードの作成コスト
-* 既存テストコードの維持コスト
-* テストコード作成自体の学習コスト
+ * 新規テストコードの作成コスト
+ * 既存テストコードの維持コスト
+ * テストコード作成自体の学習コスト
 
 当然のことながらコードを書いているので、ユニットテストを作成・維持するためのコストは発生します。
 
@@ -125,7 +133,7 @@ FAIL	sample	0.008s
 == 適切なエラーレポート
 
 ユニットテスト自体のコストの発生について"費用対効果の高いユニットテストとは"にて説明しました。その中でも、ユニットテストの維持コストを最小限におさえるために意識するべき点のひとつとして、適切なエラーレポートがあります。
-ユニットテストの失敗時にエラーレポートが"なぜ失敗したのか"をプログラマに対してわかりやすく伝えている場合、そのユニットテストは適切なエラーレポートができていると言えます。わかりやすいエラーレポートにすることによって、ユニットテストの失敗に対する調査・解決にかかるコストが下げり、ユニットテストを維持するコストの削減に繋がります。
+ユニットテストの失敗時にエラーレポートが"なぜ失敗したのか"をプログラマに対してわかりやすく伝えている場合、そのユニットテストは適切なエラーレポートができていると言えます。わかりやすいエラーレポートにすることによって、ユニットテストの失敗に対する調査・解決にかかるコストが下がり、ユニットテストを維持するコストの削減に繋がります。
 
 では、適切なエラーレポートとはなんでしょうか。Goの公式FAQの"Why does Go not have assertions?"@<fn>{goFaqAssertions}では、"直接的かつ適切な内容"と説明されています。
 具体的には、"施行した内容"・"どのような入力を行ったか"・"実際の結果"・"期待される結果"の４つの内容が含まれていることが望ましいとされています。
@@ -133,6 +141,8 @@ FAIL	sample	0.008s
 適切なエラーレポートを知るために、一度適切なエラーレポートができていない例を見てましょう。
 
 //list[InStatusList][特定の文字列リストに引数が一致するか判定するInStatusList()][go]{
+package sample
+
 func InStatusList(x string) bool {
 	ls := []string{"drafted", "published"}
 	for _, s := range ls {
@@ -147,6 +157,14 @@ func InStatusList(x string) bool {
 @<list>{InStatusList}に対して、適切なエラーレポートができていないユニットテストを書いてみます。
 
 //list[TestInStatusListNotReadable][適切なエラーレポートが設定できていない例][go]{
+package sample_test
+
+import (
+	"testing"
+
+	"github.com/hgsgtk/go-snippets/testing-codes/sample"
+)
+
 func TestInStatusList(t *testing.T) {
 	var x string
 	var want bool
@@ -172,6 +190,14 @@ FAIL
 では、より適切なエラーレポートをしているテストケースを見てみましょう。
 
 //list[TestInStatusListReadable][適切なエラーレポートを設定した例][go]{
+package sample_test
+
+import (
+	"testing"
+
+	"github.com/hgsgtk/go-snippets/testing-codes/sample"
+)
+
 func TestInStatusList(t *testing.T) {
 	var x string
 	var want bool
@@ -296,11 +322,19 @@ func GetMsg(num int) string {
 @<list>{FizzBuzzGetMsg}に対して適切なエラーハンドリングをしないテストコードを書いてみます。
 
 //list[TestFizzBuzzGetMsg][適切なエラーハンドリングができていない例][go]{
+package fizzbuzz_test
+
+import (
+	"testing"
+
+	"github.com/hgsgtk/go-snippets/testing-codes/fizzbuzz"
+)
+
 func TestGetMsg(t *testing.T) {
 	var num int
 	var want string
 
-  num = 15
+	num = 15
 	want = "FizzBuzz"
 	if got := fizzbuzz.GetMsg(num); got != want {
 		t.Fatalf("GetMsg(%d) = %s, want %s", num, got, want)
@@ -379,6 +413,14 @@ Goでは非常に広く使われているユニットテストの技法として
 //footnote[wikiTableDrivenDevelopment][@<href>{https://github.com/golang/go/wiki/TableDrivenTests}]
 
 //list[TestFizzBuzzGetMsgTableDriven][テーブル駆動テスト][go]{
+package fizzbuzz_test
+
+import (
+	"testing"
+
+	"github.com/hgsgtk/go-snippets/testing-codes/fizzbuzz"
+)
+
 func TestGetMsg(t *testing.T) {
 	tests := []struct {
 		num  int
@@ -419,6 +461,14 @@ func TestGetMsg(t *testing.T) {
 //footnote[trun][@<href>{https://golang.org/pkg/testing/#T.Run}]
 
 //list[TestFizzBuzzGetMsgSubTest][サブテストを作る例][go]{
+package fizzbuzz_test
+
+import (
+	"testing"
+
+	"github.com/hgsgtk/go-snippets/testing-codes/fizzbuzz"
+)
+
 func TestGetMsg(t *testing.T) {
 	tests := []struct {
 		desc string
@@ -499,6 +549,12 @@ ok  	fizzbuzz	0.008s
 費用対効果の高いユニットテストを目指す上で、テストコードの可読性やテストコードの追加のしやすさは重要な要素です。テストコードの可読性はドキュメンテーションとしての価値を高め、追加のしやすさは新規テストコードの作成コストの削減に繋がります。これら２つを目指すためのひとつの方法として、テストヘルパーを作成・利用する方法があります。実際に使用する例を見ていきましょう。
 
 //list[GetTomorrow][明日の時間を返すGetTomorrow()][go]{
+package sample
+
+import (
+	"time"
+)
+
 func GetTomorrow(tm time.Time) time.Time {
 	return tm.AddDate(0, 0, 1)
 }
@@ -507,6 +563,16 @@ func GetTomorrow(tm time.Time) time.Time {
 @<list>{GetTomorrow}の関数@<code>{GetTomorrow()}に対するユニットテストを作成します。まずは、テストヘルパーを使用しない場合のテストケースを示します。
 
 //list[TestGetTomorrowBefore][テストヘルパーを使用しない場合][go]{
+package sample_test
+
+import (
+	"testing"
+	"time"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/hgsgtk/go-snippets/testing-codes/sample"
+)
+
 func TestGetTomorrow(t *testing.T) {
 	jst, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
@@ -554,6 +620,18 @@ testing パッケージは、@<code>{*testing.T.Helper}@<fn>{thelper}を提供�
 //footnote[thelper][@<href>{https://golang.org/pkg/testing/#T.Helper}]
 
 //list[TestGetTomorrowAfter][テストヘルパーを使用する例][go]{
+package sample_test
+
+import (
+	"testing"
+	"time"
+
+	"github.com/hgsgtk/go-snippets/testing-codes/testutil"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/hgsgtk/go-snippets/testing-codes/sample"
+)
+
 func TestGetTomorrowUsingCmp(t *testing.T) {
 	tm := time.Date(2019, time.April, 14, 0, 0, 0, 0, testutil.GetJstLocation(t))
 
