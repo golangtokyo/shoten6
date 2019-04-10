@@ -1,4 +1,4 @@
-= sql.DB実践チュートリアル
+= Goにおけるデータベース実践入門
 
 == はじめに
 
@@ -10,15 +10,16 @@ freee株式会社でバックエンドエンジニアをしている@budougumi06
 本章では、GoからRDBMS@<fn>{bd617_rdbms}（関係データベース管理システム、 @<tti>{Relational Database Management System}）を操作する実装やテストの作成方法を紹介します。なお、簡略化のため、本章では以降RDBMSのことを単にデータベースと記載します。
 
 
-2019年になり、Goの日本語書籍は多く発売されています。また、インターネット上の日本語記事も多くなりました。しかし、データベースを使った実装、テストの方法の基本的な部分をまとめた入門用の文章はほとんどないかと思います。そこで本章では今までGoのコードを使ってデータベースを操作する実装・テストを行なったことがない方向けに、次の箇条書きの情報をまとめました@<fn>{bd_versions_note}。
+2019年になり、Goの日本語書籍は多く発売されています。また、インターネット上の日本語記事も多くなりました。しかし、データベースを使った実装、テストの方法の基本的な部分をまとめた入門用の文章はほとんどないかと思います。そこで本章では今までGoのコードを使ってデータベースを操作する実装・テストを行なったことがない方向けに、次の情報をまとめました@<fn>{bd_versions_note}。
 
  * Docker@<fn>{bd_docker}を利用したデータベースの準備方法
  * @<code>{github.com/rubenv/sql-migrate}@<fn>{bd_sql-migrate}を使ったデータベースのマイグレーション方法
- * リポジトリパターンを使ったデーベースと疎にする設計方針
- * @<code>{github.com/go-sql-driver/mysql}@<fn>{bd_driver-mysql}を使った基本的なデータベース操作の実装
+ * リポジトリパターンを使ったデータベースアクセスと業務ロジックを疎にする設計方針
  * @<code>{github.com/DATA-DOG/go-sqlmock}@<fn>{bd_sql-mock}を使った単体テストの書き方
- * データベースを利用した結合テストの書き方
- * 継続的インテグレーションをするためのCircleCI@<fn>{bd_circleci}の設定方法
+ * @<code>{database/sql}パッケージを使ったデータベース操作の入門
+ * MySQLサーバを利用した結合テストの書き方
+ * CircleCI@<fn>{bd_circleci}上でMySQLサーバを利用した自動テストを行なう設定例
+
 
 なお、今回はデータベースとして一般的なMySQL@<fn>{bd617_mysql}を使います。
 本章で利用する各種技術のバージョンは@<table>{bd_versions}の通りです。
@@ -45,10 +46,9 @@ github.com/DATA-DOG/go-sqlmock	v1.3.3
  * @<href>{https://github.com/budougumi0617/go-sql-sample}
 
 //footnote[bd617_rdbms][@<href>{https://en.wikipedia.org/wiki/Relational_database_management_system}]
-//footnote[bd_versions_note][各技術・用語については以降の章で実際に利用する時に説明します。]
+//footnote[bd_versions_note][各技術・用語については以降の節で実際に利用する時に説明します。]
 //footnote[bd_docker][@<href>{https://www.docker.com/}]
 //footnote[bd_sql-migrate][@<href>{https://github.com/rubenv/sql-migrate}]
-//footnote[bd_driver-mysql][@<href>{https://github.com/go-sql-driver/mysql}]
 //footnote[bd_sql-mock][@<href>{https://github.com/DATA-DOG/go-sqlmock}]
 //footnote[bd_circleci][@<href>{https://circleci.com/}]
 //footnote[bd617_mysql][@<href>{https://www.mysql.com/}]
@@ -77,7 +77,7 @@ export SHOTEN6_MYSQL_PORT=3306
 
 もし既にMySQLをローカルで起動していて、次節の方法でMySQLコンテナを利用する場合は、既存のMySQLとポートが競合してしまうので、@<code>{SHOTEN6_MYSQL_PORT}の値を別の値に変更してください（例：@<code>{43306}など）。
 
-なお、必須ではありませんが、私は@<code>{go-sql-sample}ディレクトリに@<code>{.envrc}として@<list>{bd_env}の環境変数を保存しました。ファイルに保存した状態で@<code>{github.com/direnv/direnv}というツールを使うと、そのディレクトリでコマンドを実行するときだけ自動で環境変数が定義されるので便利です。次のコマンドラインの実行例は@<code>{direnv}を利用している状態で各ディレクトリで環境変数を確認した実行結果です。
+なお、必須作業ではありませんが、私は@<code>{go-sql-sample}ディレクトリに@<code>{.envrc}として@<list>{bd_env}の環境変数を保存しました。ファイルに保存した状態で@<code>{github.com/direnv/direnv}というツールを使うと、そのディレクトリでコマンドを実行するときだけ自動で環境変数が定義されるので便利です。次のコマンドラインの実行例は@<code>{direnv}を利用している状態で各ディレクトリで環境変数を確認した実行結果です。
 
 //cmd{
 $ cd ~
@@ -103,13 +103,14 @@ $ brew install mysql
 //footnote[bd_docker_mac][@<href>{https://hub.docker.com/editions/community/docker-ce-desktop-mac}]
 
 ==={bd_hd_docker} Dockerを利用したデータベース環境の準備方法
-環境変数の設定準備が完了したら、Goから接続するデータベースとしてMySQLをローカルで起動しておきます。MySQLはSQL@<fn>{bd_sql}を扱うオープンソースで公開されているデータベースのひとつです。
+環境変数の設定準備が完了したら、Goから接続するデータベースとしてMySQLサーバをローカルで起動しておきます。MySQLはSQL@<fn>{bd_sql}を扱うオープンソースで公開されているデータベースのひとつです。
 ここでは、Dockerを使ってコンテナとしてMySQLサーバを起動します。Dockerコンテナとしてデータベースを起動することで、利用が終了したあと簡単に廃棄することができます。既にMySQLのデータベース環境をローカルに構築済みの方はその環境を利用してもかまいません。
 
 //footnote[bd_sql][@<href>{https://ja.wikipedia.org/wiki/SQL}]
 
 Dockerを利用してMySQLコンテナを起動するには次のコマンドを実行するだけで十分です。ローカルにDockerイメージがない場合は自動的にイメージのダウンロードが行われます。
-コマンドオプションはデーモンとして起動、空パスワードの許可、ポートを環境変数@<code>{SHOTEN6_MYSQL_PORT}として設定し、@<code>{mysql_tmp}という名前で起動させるという意味です。
+コマンドオプションはデーモンとして起動、空パスワードの許可、環境変数@<code>{SHOTEN6_MYSQL_PORT}の値にポートフォワーディングするように設定し、
+@<code>{mysql_tmp}という名前で起動させるという意味です。
 
 //cmd{
 $ docker run --rm -d -e MYSQL_ALLOW_EMPTY_PASSWORD=yes \
@@ -127,7 +128,6 @@ $ mysql -h 127.0.0.1 --port ${SHOTEN6_MYSQL_PORT} \
 | Database           |
 +--------------------+
 | information_schema |
-| caww               |
 | mysql              |
 | performance_schema |
 | sys                |
@@ -161,7 +161,7 @@ Available commands are:
     up        Migrates the database to the most recent version available
 //}
 
-@<code>{sql-migrate}コマンドは予めMySQLサーバ上に@<code>{database}の定義が必要になるため、@<code>{CREATE DATABASE}を実行するSQLファイルだけ作成しておきます。次のコマンドで @<code>{db}ディレクトリとあとでマイグレーション情報を保存するための@<code>{db/migrations}ディレクトリを作成し、今回利用する@<code>{sql_sample}データベースを作成するための@<code>{db/database.sql}を作成します。
+@<code>{sql-migrate}コマンドは予めMySQLサーバ上に@<code>{database}の定義が必要になるため、@<code>{CREATE DATABASE}を実行するSQLファイルだけ作成しておきます。次のコマンドで @<code>{db}ディレクトリと、あとでマイグレーション情報を保存するための@<code>{db/migrations}ディレクトリを作成し、今回利用する@<code>{sql_sample}データベースを作成するための@<code>{db/database.sql}を作成します。
 
 //cmd{
 $ mkdir -p db/migrations
@@ -193,7 +193,8 @@ $ mysql -h 127.0.0.1 --port ${SHOTEN6_MYSQL_PORT} \
 +--------------------+
 //}
 
-データベースを用意できたら、@<code>{sql-migrate}コマンド用のデータベースへの接続設定ファイル（@<code>{dbconfig.yml}）を作成します。@<list>{bd_dbconfig}が設定ファイルの中身です。
+データベースを用意できたら、@<code>{sql-migrate}コマンド用のデータベースへの接続設定ファイル（@<code>{dbconfig.yml}）を作成します。
+@<list>{bd_dbconfig}が設定ファイルの中身です@<fn>{dbconfig}。
 
 //list[bd_dbconfig][./dbconfig.yml]{
 development:
@@ -211,6 +212,8 @@ production:
     datasource: dbname=myapp sslmode=disable
     table: migrations
 //}
+
+//footnote[dbconfig][@<href>{https://github.com/budougumi0617/go-sql-sample/blob/master/dbconfig.yml}]
 
 @<code>{dbconfig.yml}を作成したら、一度@<code>{sql-migrate status}コマンドを実行してみましょう。何もマイグレーションファイルを作っていないので、特に情報は出力されませんが、次のような表示が出ればデータベースとの接続ができています。
 
@@ -280,19 +283,21 @@ $ mysql -h 127.0.0.1 --port ${SHOTEN6_MYSQL_PORT} -u${SHOTEN6_MYSQL_USER} \
 
 //footnote[bd_migrate_up][@<code>{gorp_migrations}は@<code>{sql-migrate}が自動生成したマイグレーション情報を管理するためのテーブルです。]
 
-== github.com/go-sql-driver/mysqlを使った基本的なデータベース操作の実装
+== リポジトリパターンを使ってデータベース操作を実装する
 GoからアクセスするMySQLサーバとテーブルの準備はできました。本節からは実際に実装コードを書いていきます。
-今回の実装でクリーンアーキテクチャなどのレイヤードアーキテクチャで使うことを想定してリポジトリパターンを用いて実装します。
+今回の実装でクリーンアーキテクチャなどのレイヤードアーキテクチャで使うことを想定してリポジトリパターン@<fn>{repo_pattern}を用いて実装します。
+//footnote[repo_pattern][@<href>{https://docs.microsoft.com/ja-jp/dotnet/standard/microservices-architecture/microservice-ddd-cqrs-patterns/infrastructure-persistence-layer-design#the-repository-pattern}]
 
 === リポジトリパターンを使った実装概要
-リポジトリパターンはビジネスロジック、アプリケーションロジックからデータモデルの永続化操作を分離する設計パターンです。リポジトリパターンと、クリーンアーキテクチャを代表とする種々のレイヤードアーキテクチャを組み合わせることで様々な恩恵を受けることができます。まず、データの永続化操作を特定のレイヤー（今回は@<code>{repository}パッケージ）に閉じ込めておくことができます。その他のレイヤーはデータの永続化操作を考慮せず、ビジネスロジック・アプリケーションロジックのみを表現できます。また、依存性の注入@<fn>{wiki_di}（@<tti>{Dependency injection}、DI）でレイヤーを組み合わせることで、永続化操作の実装とビジネスロジック・アプリケーションロジックの依存関係を下げることができます。
+リポジトリパターンはビジネスロジック、アプリケーションロジックからデータソースの永続化操作を分離する設計パターンです。リポジトリパターンと、クリーンアーキテクチャを代表とする種々のレイヤードアーキテクチャを組み合わせることで様々な恩恵を受けることができます。まず、データソースの永続化操作を特定のレイヤー（今回は@<code>{repository}パッケージ）にカプセル化することができます。その他のレイヤーはデータソースの永続化操作を考慮せず、ビジネスロジック・アプリケーションロジックのみを表現できます。また、依存性の注入@<fn>{wiki_di}（@<tti>{Dependency injection}、DI）でレイヤーを組み合わせることで、永続化操作の実装とビジネスロジック・アプリケーションロジックの依存関係を下げることができます。
+
 
 //footnote[wiki_di][@<href>{https://ja.wikipedia.org/wiki/%E4%BE%9D%E5%AD%98%E6%80%A7%E3%81%AE%E6%B3%A8%E5%85%A5}]
 
 Goの場合、レイヤーはパッケージ（ディレクトリ）構成で表現されることが多いです。今回は@<list>{bd_dirs}の構成で実装を行ないます。
 
 //list[bd_dirs][パッケージ構成図]{
-tree .
+$ tree .
 .
 ├── entity     // データモデルやビジネスロジックを格納するパッケージ
 ├── repository // データの永続化操作を行なうパッケージ
@@ -300,7 +305,7 @@ tree .
     └── port   // 抽象化したリポジトリ定義を置いておくサブパッケージ
 //}
 
-本来ならば、@<list>{bd_dirs}の他に実際に@<code>{*sql.DB}オブジェクトを生成する@<code>{infra}パッケージが必要になるでしょう。しかし、今回は単純に@<code>{sql.Open}関数で@<code>{*sql.DB}オブジェクトを取得する簡易実装を使うので省略します。また、Webサービス開発の場合はこの他にHTTPやgRPC@<fn>{grpc}の送受信を行なう@<code>{service}パッケージなどを作成されると思いますが、今回はデータベースの操作をする部分の実装に絞るため、割愛します。
+本来ならば、@<list>{bd_dirs}の他に@<code>{*sql.DB}オブジェクトを生成してデータベースへ接続する@<code>{gateways}パッケージが必要になるでしょう。しかし、今回は単純に@<code>{sql.Open}関数で@<code>{*sql.DB}オブジェクトを取得するだけの簡易実装を使うので省略します。また、Webサービス開発の場合はこの他にHTTPやgRPC@<fn>{grpc}の送受信を行なう@<code>{controllers}パッケージや@<code>{presenters}パッケージなどを作成されると思いますが、今回はデータベースの操作をする部分の実装に絞るため、割愛します。
 
 //footnote[grpc][@<href>{https://grpc.io/}]
 
@@ -308,7 +313,7 @@ tree .
 
 //footnote[wiki_crc][@<href>{https://github.com/golang/go/wiki/CodeReviewComments#interfaces}]
 
-== リポジトリの空実装を行なう
+=== リポジトリパターンの空実装を行なう
 では、実際にリポジトリパターンを実装します。まずデータモデルである@<code>{entity.User}構造体を定義しておきます。
 @<code>{entity.User}構造体は@<list>{bd_entity}の通りのフィールドを持ちます。
 
@@ -330,12 +335,11 @@ type User struct {
 //}
 
 構造体のフィールド名とデータベースのカラム名が異なる場合はタグを使ってマッピングを行ないます。
-@<list>{entity_user}では@<code>{CreatedAt}フィールドを@<code>{created_at}カラムに対応付けたりしています。
+@<list>{entity_user}では@<code>{CreatedAt}フィールドを@<code>{created_at}カラムに対応付けるタグを定義しています。
+簡略のために省いていますが、実践で定義するときは@<code>{ID}の@<code>{int64}型を独自型の@<code>{type UserID int64}にするなどをしたほうがベターでしょう。
 
 次に@<code>{repository}パッケージの実装を行ないます。まずは簡単に @<code>{*sqlDB}オブジェクトのラッパーとなる @<code>{Repo}の定義（@<list>{bd_repodb}）と、 
 @<code>{entity.User}を読み書きするメソッドの空定義（@<list>{bd_repo}）を用意します。
-
-
 
 
 //list[bd_repodb][./repository/db.go]{
@@ -345,7 +349,7 @@ import (
   "database/sql"
 )
 
-// Repo は*sql.DBをラップしたSQLデータベースへアクセスするためのリポジトリオブジェクト。
+// Repo *sql.DBをラップしたSQLデータベースへアクセスするためのリポジトリオブジェクト。
 type Repo struct {
   db *sql.DB
 }
@@ -355,6 +359,8 @@ func NewRepo(db *sql.DB) *Repo {
   return &Repo{db}
 }
 //}
+
+実際にアプリケーションロジックなどを作成し始めると、@<code>{Email}情報を使って@<code>{entity.User}を探したりするでしょうが、ひとまず読み書きするメソッドを一つずつ定義しました。
 
 //list[bd_repo][./repository/user_repository.go]{
 package repository
@@ -379,7 +385,7 @@ func (repo *Repo) AddUser(ctx context.Context, u *entity.User) error {
 
 == github.com/DATA-DOG/go-sqlmockを使った単体テストの書き方
 リポジトリの空実装を作成したあとはユニットテストを実装します。
-まずデータベースを利用せずに実行できるテストを作成してみましょう。
+まずデータベースを準備せずに実行できるテストを作成してみましょう。
 正しく意図通りのSQLの発行がされたか確認できる@<code>{github.com/DATA-DOG/go-sqlmock}パッケージを利用します。
 
 @<code>{go-sqlmock}パッケージは@<code>{*sql.DB}オブジェクトとして利用できるモックオブジェクトを生成します。テスト実装者は、モックオブジェクト生成時に同時に生成される@<code>{go-sqlmock.Sqlmock}オブジェクトを使って、モックオブジェクトへ期待するSQL文を設定することができます。
@@ -487,22 +493,175 @@ FAIL  github.com/budougumi0617/go-sql-sample/repository  0.007s
 # 紙面の都合上一部のテスト結果は改行を追加しています。
 //}
 
-== ここからした書けていない
 
-== リポジトリの実装
-== database/sqlの基本
-=== sql.DB、sql.Conn、sql.Txの使いわけ
-@<code>{sql.DB}などがあります。
-@<code>{sql.DB}などがあります。
+=== database/sqlを使ったデータベース操作の実装
+動作確認するテストコードも揃ったので、実装してみましょう。
+Goにもデータベースへの処理を実装するときは@<code>{github.com/jinzhu/gorm}@<fn>{gorm}などの比較的リッチなフレームワークが存在します。
+ただ、今回は基礎を押させるため、標準パッケージである@<code>{database/sql}パッケージを使ってデータベース処理を実装していきます。
+コードを書く前に@<code>{database/sql}パッケージの内容を確認しておきましょう。
 
-=== QueryContext
-=== Prepareと
-ExecContextとPrepare/Execはどちらがいいんだろうか？
+//footnote[gorm][@<href>{http://doc.gorm.io/}]
+
+まずは公式ドキュメントを確認しておきます。GoDoc@<fn>{sql_doc}やGo WikiのSQLInterface@<fn>{sql_wiki}が参考になるでしょう。Goからデータベースに接続するためには接続先にあったドライバをblank importする必要があります。
+MySQLの場合は、@<code>{github.com/go-sql-driver/mysql}@<fn>{bd_driver-mysql}がデファクトでしょう。
+
+//footnote[bd_driver-mysql][@<href>{https://github.com/go-sql-driver/mysql}]
+
+
+データベースの各ドライバは@<code>{init}関数という起動時に呼び出される特殊な関数を各パッケージ内に宣言しています@<fn>{mysql_drv}。
+
+//list[mysql_init][github.com/go-sql-driver/mysqlのinit関数]{
+func init() {
+  sql.Register("mysql", &MySQLDriver{})
+}
+//}
+
+@<code>{init}関数によって登録されたドライバを使って@<code>{sql.Open}関数を呼び出すことによってデータベース操作が始まります。
+
+//list[init_open][blank importとデータベースの初期化]{
+import (
+  _ "github.com/go-sql-driver/mysql"
+)
+
+func foo() {
+  db, err := sql.Open("mysql", "root:mysql@(localhost:3306)/database_name")
+
+  // Do something...
+
+}
+//}
+
+//footnote[sql_doc][@<href>{https://golang.org/pkg/database/sql/}]
+//footnote[sql_wiki][@<href>{https://github.com/golang/go/wiki/SQLInterface}]
+//footnote[mysql_drv][@<href>{https://github.com/go-sql-driver/mysql/blob/89ec2a9ec85e27afb0f0fcd3c2399e72cc360ae4/driver.go#L83-L85}]
+
+==== sql.DB、sql.Conn、sql.Tx オブジェクト
+@<code>{sql.Open}に成功すると、戻り値として@<code>{*sql.DB}オブジェクトが手に入ります。
+@<code>{*sql.DB}オブジェクトにはいかにもなメソッド名の@<code>{QueryContext}メソッドが存在します。
+しかし、@<code>{github.com/go-sql-driver/mysql}パッケージのGoDocをみると@<code>{QueryContext}メソッドは@<code>{*sql.Conn}オブジェクトや@<code>{*sql.Tx}オブジェクトにも存在します。どうやって使い分ければいいのでしょうか。
+
+ * @<code>{ func (c *Conn) QueryContext(ctx context.Context, query string, args ...interface{\}) (*Rows, error)}
+ * @<code>{func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{\}) (*Rows, error)}
+ * @<code>{func (tx *Tx) QueryContext(ctx context.Context, query string, args ...interface{\}) (*Rows, error)}
+
+
+@<code>{*sql.DB}オブジェクトは複数のゴルーチンから利用されても安全に利用できることがGoDocに明記されています@<fn>{sql_db}。データベースへのコネクションプールと思えばよいようです。
+また、一度 @<code>{sql.Open}するだけでよく何回も@<code>{Open}と @<code>{Close}するものでもないことがGoDocに明記されています@<fn>{sql_open}。
+
+//footnote[sql_db][@<href>{https://golang.org/pkg/database/sql/#DB}]
+//footnote[sql_open][@<href>{https://golang.org/pkg/database/sql/#Open}]
+
+@<code>{*sql.DB}オブジェクトの@<code>{Conn}メソッドから取得できる@<code>{*sql.Conn}オブジェクトはデータベースとの一つのコネクションに相当します。
+@<code>{*sql.Conn}オブジェクトは継続して同じコネクションでデータベース操作を行ないたいときに利用すべきでしょう。
+たとえば、HTTPサーバのひとつのリクエスト中などは@<code>{*sql.Conn}オブジェクトで良さそうです。
+
+@<code>{*sql.DB}オブジェクト、@<code>{*sql.Conn}オブジェクトの@<code>{BeginTx}メソッドから取得できる@<code>{*sql.Tx}オブジェクトはトランザクションを象徴するオブジェクトです。コミット、ロールバック操作を行ないたい時に利用すれば良さそうです。
+
+@<code>{*sql.Conn}オブジェクトや@<code>{*sql.Tx}オブジェクトは利用後@<code>{Close}メソッドを呼ばないとコネクションを話さないので注意が必要です。
+
+それでは、実際にSQLを発行するときのメソッドを簡単に紹介します。どれもプレースホルダーを利用することが可能です。
+この他にも@<code>{Prepare}メソッドなども用意されているのですが、今回は入門編なので説明を省略します。
+
+==== QueryContext/QueryRowContext メソッド
+データベースに対する@<code>{SELECT}操作などは@<code>{QueryContext}メソッドを利用して実行することができます。
+
+//list[query_context][QueryContextの利用例(GoDocのExampleより)]{
+  age := 27
+  rows, err := db.QueryContext(ctx, "SELECT name FROM users WHERE age=?", age)
+  if err != nil {
+    log.Fatal(err)
+  }
+  // 戻り値の *sql.Rowsオブジェクトも確実にCloseする必要があります。
+  defer rows.Close()
+  names := make([]string, 0)
+
+  // 取得できた行データからstructや変数を書き換えていきます。
+  for rows.Next() {
+    var name string
+    if err := rows.Scan(&name); err != nil {
+      // Check for a scan error.
+      // Query rows will be closed with defer.
+      log.Fatal(err)
+    }
+    names = append(names, name)
+  }
+  // If the database is being written to ensure to check for Close
+  // errors that may be returned from the driver. The query may
+  // encounter an auto-commit error and be forced to rollback changes.
+  rerr := rows.Close()
+  if rerr != nil {
+    log.Fatal(err)
+  }
+
+  // Rows.Err will report the last error encountered by Rows.Scan.
+  if err := rows.Err(); err != nil {
+    log.Fatal(err)
+  }
+//}
+
+確実に一行以下の情報しか取得できないとわかっているときは@<code>{QueryRowContext}メソッドを使います。
+
+//list[query_row_context][QueryRowContextの利用例(GoDocのExampleより)]{
+  id := 123
+  var username string
+  var created time.Time
+  err := db.QueryRowContext(
+        ctx,
+        "SELECT username, created_at FROM users WHERE id=?",
+        id,
+      ).Scan(&username, &created)
+  switch {
+  case err == sql.ErrNoRows:
+    // 該当データがなかった場合はsql.ErrNoRowsがerrorとして返ってきます。
+    log.Printf("no user with id %d\n", id)
+  case err != nil:
+    log.Fatalf("query error: %v\n", err)
+  default:
+    log.Printf("username is %q, account created on %s\n", username, created)
+  }
+//}
+
+==== ExecContext メソッド
+@<code>{INSERT}や@<code>{UPDATE}を実行したい場合は @<code>{ExecContext}メソッドを利用して実行することができます。
+
+//list[exec_context][ExecContextの利用例(GoDocのExampleより)]{
+  conn, err := db.Conn(ctx)
+  if err != nil {
+    log.Fatal(err)
+  }
+  defer conn.Close() // Return the connection to the pool.
+  id := 41
+  result, err := conn.ExecContext(
+        ctx,
+        `UPDATE balances SET balance = balance + 10 WHERE user_id = ?;`,
+        id,
+      )
+  if err != nil {
+    log.Fatal(err)
+  }
+  rows, err := result.RowsAffected()
+  if err != nil {
+    log.Fatal(err)
+  }
+//}
+
+@<code>{INSERT}した場合は戻り値の@<code>{sql.Result}オブジェクトの@<code>{LastInsertId}メソッドから発行された行IDを取得することができます。
+
+
+=== リポジトリの実装
+では、実際に@<code>{database/sql}メソッドを利用してリポジトリのメソッドを実装します。
 
 //list[bd_find_user][FindUserメソッドを実装する]{
 func (repo *Repo) FindUser(ctx context.Context, id int64) (*entity.User, error) {
+  // SELECTの結果の格納に利用するentity.User
   u := &entity.User{}
-  err := repo.db.QueryRowContext(ctx, `
+  conn, err := repo.db.Conn(ctx)
+  if err != nil {
+    return nil, err
+  }
+  defer conn.Close()
+
+  err = conn.QueryRowContext(ctx, `
     SELECT id, name, email, created_at, updated_at FROM user WHERE id = ?
   `, id).Scan(
     &u.ID,
@@ -521,26 +680,28 @@ func (repo *Repo) FindUser(ctx context.Context, id int64) (*entity.User, error) 
 }
 //}
 
-
+@<code>{INSERT}を使って新規に@<code>{entity.User}を保存する実装は以下になりました。
 
 
 //list[bd_add_user][AddUserメソッドを実装する]{
 func (repo *Repo) AddUser(ctx context.Context, u *entity.User) error {
-  stmt, err := repo.db.PrepareContext(ctx, `
+  conn, err := repo.db.Conn(ctx)
+  if err != nil {
+    return err
+  }
+  defer conn.Close()
+
+  now := time.Now()
+  res, err := conn.ExecContext(ctx, `
         INSERT INTO user (name, email, created_at, updated_at)
         VALUES (?, ?, ?, ?)
-    `)
+    `, u.Name, u.Email, now, now,
+  )
   if err != nil {
     return err
   }
-  defer stmt.Close()
-  now := time.Now()
 
-  res, err := stmt.ExecContext(ctx, u.Name, u.Email, now, now)
-  if err != nil {
-    return err
-  }
-  id, err := res.LastInsertId() // 挿入した行のIDを返却
+  id, err := res.LastInsertId() // 挿入した行のIDを取得
   if err != nil {
     return err
   }
@@ -561,13 +722,8 @@ $ go test -v ./repository
 === RUN   TestRepo_AddUser
 --- PASS: TestRepo_AddUser (0.00s)
 PASS
-ok  	github.com/budougumi0617/go-sql-sample/repository	0.009s
+ok    github.com/budougumi0617/go-sql-sample/repository  0.009s
 //}
-
-== ここから上まだ書けていない
-
-
-
 
 今度は期待した通りのSQLが発行されていることが確かめられました@<fn>{but_mock}。
 
@@ -585,25 +741,25 @@ ok  	github.com/budougumi0617/go-sql-sample/repository	0.009s
 package port
 
 import (
-	"context"
+  "context"
 
-	"github.com/budougumi0617/go-sql-sample/entity"
+  "github.com/budougumi0617/go-sql-sample/entity"
 )
 
 // UserAccessor is a set of reader and writer for User in a data store.
 type UserAccessor interface {
-	UserReader
-	UserWriter
+  UserReader
+  UserWriter
 }
 
 // UserReader retrieves User data from a data store.
 type UserReader interface {
-	FindUser(context.Context, int64) (*entity.User, error)
+  FindUser(context.Context, int64) (*entity.User, error)
 }
 
 // UserWriter stores User data into a data store.
 type UserWriter interface {
-	AddUser(context.Context, *entity.User) error
+  AddUser(context.Context, *entity.User) error
 }
 //}
 
@@ -668,7 +824,7 @@ func (au *UserCase) Find(ctx context.Context, id int64) (*entity.User, error) {
 type FakeRepo struct{}
 
 // AddUser はport.UserAccessorを満たすための実装
-func (r *Repo) AddUser(ctx context.Context, u *entity.User) {
+func (r *Repo) AddUser(ctx context.Context, u *entity.User) error {
   u.ID = 100
   return nil
 }
@@ -687,6 +843,9 @@ func TestUserCase(t *testing.T) {
 このようにデータベースを利用せずにテストできる@<code>{usecase}パッケージの内容は本章の主旨と合わないため割愛します。
 
 == MySQLサーバと接続するテスト
+実際にMySQLサーバ上のデータベースを利用したテストコードを書いてみましょう。
+本来ならば、テーブルの初期化やクリーンアップも行なう必要がありますが、
+今回はまずユーザーを追加するだけの簡単なテストのみ書いてみます。
 
 //list[e2e][./e2e/usecase_test.go]{
 // +build e2e
@@ -778,7 +937,7 @@ ok    github.com/budougumi0617/go-sql-sample/repository  0.006s
 ?     github.com/budougumi0617/go-sql-sample/usecase/port  [no test files]
 //}
 
-逆にビルドタグを付けると@<code>{e2e} パッケージのテストも実行されていることがわかります。
+ビルドタグを付けて@<code>{go test}コマンドを実行すると、@<code>{e2e} パッケージのテストも実行されていることがわかります。
 
 //cmd{
 $ go test -v -count=1 -tags e2e ./...
@@ -800,6 +959,7 @@ ok    github.com/budougumi0617/go-sql-sample/repository  0.009s
 //}
 
 ここまででMySQLサーバを利用しないテスト、MySQLサーバを利用するテストを準備することができました。
+
 最後に、次節でGitHubにコードがプッシュするたびに自動テストを行なうための設定をしたいと思います。
 その前にここまでで行なったマイグレーションなどのコマンドライン操作を@<code>{Makefile}にしておきます。
 @<code>{Makefile}の内容は@<list>{makefile}の通りです@<fn>{makefile}。
@@ -810,25 +970,28 @@ ok    github.com/budougumi0617/go-sql-sample/repository  0.009s
 .PHONY: create up e2e mysql.start mysql.stop
 
 create:
-	mysql -h 127.0.0.1 --port ${SHOTEN6_MYSQL_PORT} -u${SHOTEN6_MYSQL_USER} < db/database.sql
+  mysql -h 127.0.0.1 --port ${SHOTEN6_MYSQL_PORT} \
+      -u${SHOTEN6_MYSQL_USER} < db/database.sql
 
 up:
-	sql-migrate up
+  sql-migrate up
 
 e2e:
-	go test -v -tags e2e ./...
+  go test -v -tags e2e ./...
 
 mysql.start:
-	docker run --rm -d -e MYSQL_ALLOW_EMPTY_PASSWORD=yes \
-		-p $(SHOTEN6_MYSQL_PORT):3306 --name mysql_tmp mysql:5.7
+  docker run --rm -d -e MYSQL_ALLOW_EMPTY_PASSWORD=yes \
+    -p $(SHOTEN6_MYSQL_PORT):3306 --name mysql_tmp mysql:5.7
 
 mysql.stop:
-	docker stop mysql_tmp
+  docker stop mysql_tmp
 //}
 
 
-== CircleCI上でMySQLサーバを利用する自動テストを実施する場合の設定方法
-業務で取り組む場合、@<code>{master}ブランチへマージするタイミングや、Pull Requestを作成・更新するたびに自動テストを実施して品質を担保します。このような継続的インテグレーション@<fn>{bd617_ci}（CI、@<tti>{Continuous Integration})の仕組みをデータベースを利用した実装でも行なってみましょう。今回はCircleCIというクラウドサービスを使って自動テストを行ないます。CircleCIはプログラムの開発を自動化するためのクラウドサービスです。
+== CircleCI上でMySQLサーバを利用する自動テストを実施する
+業務で取り組む場合、@<code>{master}ブランチへマージするタイミングや、Pull Requestを作成・更新するたびに自動テストを実施して品質を担保します。
+このような継続的インテグレーション@<fn>{bd617_ci}（CI、@<tti>{Continuous Integration})の仕組みをデータベースを利用した実装でも行なってみましょう。
+今回はCircleCIというクラウドサービスを使って自動テストを行ないます。CircleCIはプログラムの開発を自動化するためのクラウドサービスです。
 CircleCIは利用もたやすく、publicなリポジトリで利用する分には無料です。
 
 //footnote[bd617_ci][@<href>{https://aws.amazon.com/jp/devops/continuous-integration/}]
@@ -902,7 +1065,9 @@ workflows:
       - e2e
 //}
 
-各設定の詳細はCircleCIの公式ページ@<fn>{cci_cfg}を参照してください。大事な部分は@<code>{image}部分でMySQLコンテナを起動していること、@<code>{dockerize}コマンドでMySQLのサービスがが起動するのを待機するところです。
+各設定の詳細はCircleCIの公式ページ@<fn>{cci_cfg}を参照してください。
+大事な部分は@<code>{image}部分でMySQLコンテナを起動していること、
+@<code>{dockerize}コマンドでMySQLのサービスが起動するのを待機するところです。
 
 
 //footnote[cci_cfg][@<href>{https://circleci.com/docs/2.0/config-intro/}]
@@ -913,7 +1078,7 @@ workflows:
 //cmd{
 $ git init
 $ git add --all
-$ git commit -m "Publish codes"
+$ git commit -m "Published"
 $ git remote origin git@github.com:budougumi0617/go-sql-sample.git
 $ git push -f
 //}
@@ -922,12 +1087,15 @@ $ git push -f
 画面遷移が終わると自分が公開しているリポジトリの一覧が表示されるので、本章で作成したコードがプッシュされているリポジトリの"Set Up Project"をクリックします。
 "Set Up Project"をクリックしたあとは、言語などを選びビルドの初期設定を行なう画面に遷移しますが、@<code>{.circleci/config.yml}を作成してプッシュしているので作業は必要ありません。
 ページ途中にある"Start Building"ボタンをクリックしてビルドをしてみましょう。
-しばらく立つと@<tt>{.circleci/config.yml}の手順に則って自動テストが始まります。
+しばらく立つと@<code>{.circleci/config.yml}の手順に則って自動テストが始まります。
 実際にCircleCIで自動テストを実行した結果が@<img>{bd_circleci_result}@<fn>{cci_result}です。
 
 
 //image[bd_circleci_result][CircleCI上でMySQLサーバを利用したテストを実行した結果][scale=0.8]{
 //}
+
+あとはコミットやPRが作成されるたびに自動テストが実行されます。
+これでCircleCI上でMySQLを利用したテストが実行できるようになりました。
 
 //footnote[cci_board][@<href>{https://circleci.com/dashboard}]
 //footnote[cci_addproj][@<href>{https://circleci.com/add-projects/gh/YOUR_GITHUB_ACCOUNT}]
@@ -937,12 +1105,16 @@ $ git push -f
 本章ではデータベースを利用したGoの実装について紹介しました。
 単にデータベースを操作するコードを書くだけではなく、次の箇条書きにまとめた点についても紹介しました。
 
- * 実際にデータベース上のテーブルを準備する方法
- * MySQLサーバを用意せずに実行する単体テストの作成方法
- * MySQLサーバを使ってテストを実行する方法
- * CircleCI上でMySQLサーバを利用する自動テストを実施する場合の設定方法
+ * Dockerを利用したデータベースの準備方法
+ * @<code>{github.com/rubenv/sql-migrate}を使ったデータベースのマイグレーション方法
+ * リポジトリパターンを使ったデータベースアクセスと業務ロジックを疎にする設計方針
+ * @<code>{github.com/DATA-DOG/go-sqlmock}を使った単体テストの書き方
+ * @<code>{database/sql}パッケージを使ったデータベース操作の入門
+ * MySQLサーバを利用した結合テストの書き方
+ * CircleCI上でMySQLサーバを利用した自動テストを行なう設定例
+
 
 @<code>{sqlmock}などを使ったテストはホワイトボックス過ぎて敬遠される方もいらっしゃると思います。
-が、今回は”こういうライブラリがあって、こんな実装アプローチができる”ということを共有する意味もこめて
-敢えて利用してみました。本章がみなさんの学習の手助けになれば幸いです。
+が、今回は”こういうライブラリがあって、こんな実装アプローチができる”ということを共有する意味もこめて敢えて利用してみました。
+実際の業務で利用するためにはまだまだ不足している内容も多いですが、本章がみなさんの学習の手助けになれば幸いです。
 
