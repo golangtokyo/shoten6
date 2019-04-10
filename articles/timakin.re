@@ -197,7 +197,7 @@ func (pf *ProcessorFactory) New(pt ProcessorType) (Processor, error) {
 
 @<code>{imaging}パッケージを使って多様な画像形式に対応できるようにすると良いでしょう。
 本章の事例でも、画像ファイルに関してクライアント様に規約を提示しつつ、形式の差異を一定程度吸収できるように@<code>{imaging}パッケージを利用しました。
-また、固定で利用する素材hsサイズ的に問題がなければstatik@<fn>{statik}を使ってあらかじめバイナリに含めても良いと思います。
+また、画像合成は素材が多くなる可能性があります。そこで、固定で利用する素材はサイズ的に問題がなければstatik@<fn>{statik}を使ってあらかじめバイナリに含めても良いと思います。
 そのため、当実装では細かいパーツだけ@<code>{statik}を使って読み出すようにしました。
 
 //footnote[statik][@<href>{https://github.com/rakyll/statik}]
