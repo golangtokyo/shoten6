@@ -182,15 +182,15 @@ Goの特徴的な言語仕様として、 アサーションが提供されて�
 
 //footnote[goFaqAssertions][@<href>{https://golang.org/doc/faq#assertions}]
 
-では、Goにおいて適切なエラーハンドリングを実現するためには、どのようにすればよいのでしょうか。Goでは testing パッケージが提供する @<code>{*T.Error}@<fn>{terror}/@<code>{*T.Errorf}@<fn>{terrorf}・@<code>{*T.Fatal}@<fn>{tfatal}/@<code>{*T.Fatalf}@<fn>{tfatalf}というAPIが提供しています。それらを適切に使い分けることによって、適切なエラーハンドリングを実現します。
+では、Goにおいて適切なエラーハンドリングを実現するためには、どのようにすればよいのでしょうか。Goでは testing パッケージが提供する @<code>{*testing.T.Error}@<fn>{terror}/@<code>{*testing.T.Errorf}@<fn>{terrorf}・@<code>{*testing.T.Fatal}@<fn>{tfatal}/@<code>{*testing.T.Fatalf}@<fn>{tfatalf}というAPIが提供しています。それらを適切に使い分けることによって、適切なエラーハンドリングを実現します。
 
 //footnote[terror][@<href>{https://golang.org/pkg/testing/#T.Error}]
 //footnote[terrorf][@<href>{https://golang.org/pkg/testing/#T.Errorf}]
 //footnote[tfatal][@<href>{https://golang.org/pkg/testing/#T.Fatal}]
 //footnote[tfatalf][@<href>{https://golang.org/pkg/testing/#T.Fatalf}]
 
-@<code>{*T.Errorf}では、"対象のテストケースが失敗した"と記録されますが、実行は継続されます。それに対して、@<code>{*T.Fatalf}では、@<code>{*T.Errorf}と同様に"対象のテストケースが失敗した"ことを記録しますが、同時に実行を停止し、次のテストケースの実行へと移ります。
-よって、致命的なエラーに対するハンドリングは@<code>{*T.Fatalf}で行い、そうではないエラーに対するハンドリングは、@<code>{*T.Errorf}で行います。
+@<code>{*testing.T.Errorf}では、"対象のテストケースが失敗した"と記録されますが、実行は継続されます。それに対して、@<code>{*testing.T.Fatalf}では、@<code>{*testing.T.Errorf}と同様に"対象のテストケースが失敗した"ことを記録しますが、同時に実行を停止し、次のテストケースの実行へと移ります。
+よって、致命的なエラーに対するハンドリングは@<code>{*testing.T.Fatalf}で行い、そうではないエラーに対するハンドリングは、@<code>{*testing.T.Errorf}で行います。
 
 //list[GetNum][sample.go][go]{
 package sample
@@ -281,7 +281,7 @@ func TestGetMsg(t *testing.T) {
 }
 //}
 
-すべてのエラーを、@<code>{*T.Fatalf}でハンドリングでしています。ユニットテストが通っている間はこれでも問題ないように見えるかもしれません。では、@<list>{FizzBuzzGetMsg}に２箇所バグが侵入してしまったケースを考えてみましょう。
+すべてのエラーを、@<code>{*testing.T.Fatalf}でハンドリングでしています。ユニットテストが通っている間はこれでも問題ないように見えるかもしれません。では、@<list>{FizzBuzzGetMsg}に２箇所バグが侵入してしまったケースを考えてみましょう。
 
 //list[BuggFizzBuzzGetMsg][fizzbuzz.go][go]{
 package fizzbuzz
@@ -313,7 +313,7 @@ func GetMsg(num int) string {
 FAIL
 //}
 
-最初の１箇所のみがエラー結果として得られました。もう１つ侵入したバグに対するエラー結果を得ることはできませんでした。このテストケースではひとつの検証パターンの失敗を致命的なエラーとして扱いハンドリングしています。そのため、１回の実行によって得られる情報が少ないため、何度も修正しては現れるエラーに対して修正を繰り返さなければなりません。もし、@<code>{t.Errorf}でハンドリングしていた場合は@<list>{ExecuteTestFizzBuzzGetMsgBetter}のように１回で多くの情報を得ることができます。
+最初の１箇所のみがエラー結果として得られました。もう１つ侵入したバグに対するエラー結果を得ることはできませんでした。このテストケースではひとつの検証パターンの失敗を致命的なエラーとして扱いハンドリングしています。そのため、１回の実行によって得られる情報が少ないため、何度も修正しては現れるエラーに対して修正を繰り返さなければなりません。もし、@<code>{*testing.T.Errorf}でハンドリングしていた場合は@<list>{ExecuteTestFizzBuzzGetMsgBetter}のように１回で多くの情報を得ることができます。
 
 //list[ExecuteTestFizzBuzzGetMsgBetter][t.Errorfでハンドリングした場合のユニットテスト結果][]{
 === RUN   TestGetMsg
@@ -367,7 +367,7 @@ func TestGetMsg(t *testing.T) {
 
 === サブテスト
 
-テーブル駆動テストに加えて、サブテストを使うことができます。サブテストは@<code>{*T.Run}@<fn>{trun}を使用することによって実現します。@<list>{TestFizzBuzzGetMsgTableDriven}をサブテストを使うように書き換えます。
+テーブル駆動テストに加えて、サブテストを使うことができます。サブテストは@<code>{*testing.T.Run}@<fn>{trun}を使用することによって実現します。@<list>{TestFizzBuzzGetMsgTableDriven}をサブテストを使うように書き換えます。
 
 //footnote[trun][@<href>{https://golang.org/pkg/testing/#T.Run}]
 
@@ -484,7 +484,7 @@ func GetJstLocation(t *testing.T) *time.Location {
 }
 //}
 
-testing パッケージには、@<code>{*T.Helper}@<fn>{thelper}があります。@<code>{*T.Helper}を呼び出すことでテストヘルパー関数として扱われます。
+testing パッケージには、@<code>{*testing.T.Helper}@<fn>{thelper}があります。@<code>{*testing.T.Helper}を呼び出すことでテストヘルパー関数として扱われます。
 
 //list[TestGetTomorrowAfter][TestGetTomorrow][go]{
 func TestGetTomorrowUsingCmp(t *testing.T) {
@@ -524,7 +524,6 @@ func TestGetTomorrowUsingCmp(t *testing.T) {
 また、パッケージの公開機能のみを利用するユニットテストを書くため、ユニットテスト作成時にそのパッケージのクライアントの立場に立って考える機会になります。結果としてそのパッケージのAPIの使いにくい点や欠陥への気付きに繋がります。
 
 対照的にホワイトボックステストは、内部の実装の複雑な部分を詳細に網羅する事ができる利点があります。
-
 
 テストパッケージをどちらにするのかはこれらのどちらの利点を重視するかによって変わるでしょう。筆者は、壊れやすいテスト発生による維持コストの増加の懸念とパッケージのクライアントの視点の２つの利点を重視しています。そのため、ブラックボックステストのなりやすい外部テストパッケージにテストコードを置くようにしています。そのうえで、非公開機能に対して公開機能を介さずに直接ユニットテストを書きたいという場合には、非公開機能を別パッケージの公開機能として切り出せないか検討します。
 
