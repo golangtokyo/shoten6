@@ -211,41 +211,60 @@ Goにおいて適切なエラーハンドリングを実現するための具体
 よって、処理の継続において致命的なエラーに対するハンドリングは@<code>{*testing.T.Fatal}/@<code>{*testing.T.Fatalf}で行い、そうではないエラーに対するハンドリングは、@<code>{*testing.T.Error}/@<code>{*testing.T.Errorf}で行います。
 ひとつ、@<code>{*testing.T.Fatalf}と@<code>{*testing.T.Errorf}を使い分けるサンプルを見てましょう。
 
-//list[GetNum][受け取った文字列を数値に変換して返すGetNum()][go]{
+//list[OkHandler][OKを返すHTTPハンドラー()][go]{
 package sample
 
 import (
-	"strconv"
-
-	"github.com/pkg/errors"
+	"encoding/json"
+	"net/http"
 )
 
-func GetNum(str string) (int, error) {
-	num, err := strconv.Atoi(str)
-	if err != nil {
-		return 0, errors.Wrapf(err, "GetNum failed converting %#v", str)
+func OkHandler(w http.ResponseWriter, r *http.Request) {
+	type Body struct {
+		Status string `json:"status"`
 	}
-	return num, nil
-}
-//}
-
-@<list>{GetNum}に対して@<code>{*testing.T.Fatalf}と@<code>{*testing.T.Errorf}両方を使用してテストコードを書きます。
-
-//list[TestGetNum][GetNum()に対するテストコード][go]{
-func TestGetNum(t *testing.T) {
-	str := "7"
-	got, err := sample.GetNum(str)
-	if err != nil {
-		t.Fatalf("GetNum(%s) caused unexpected error '%#v'", str, err)
-	}
-	want := 7
-	if got != want {
-		t.Errorf("GetNum(%s) = %d, want %d", str, got, want)
+	body := Body{Status: "OK"}
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(body); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 }
 //}
 
-@<list>{TestGetNum}では、@<code>{GetNum()}からエラーが返却されることは想定していないため、後続の戻り値確認の前で処理をクラッシュさせています。
+@<list>{OkHandler}に対して@<code>{*testing.T.Fatalf}と@<code>{*testing.T.Errorf}両方を使用してテストコードを書きます。
+
+//list[TestOkHandler][OkHandler()に対するテストコード][go]{
+package sample_test
+
+import (
+	"io/ioutil"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/hgsgtk/go-snippets/testing-codes/sample"
+)
+
+func TestOkHandler(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/sample", nil)
+
+	sample.OkHandler(w, r)
+	res := w.Result()
+	defer res.Body.Close()
+
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("ioutil.ReadAll() caused unexpected error '%#v'", err)
+	}
+	const expected = "{\"status\":\"OK\"}\n"
+	if got := string(b); got != expected {
+		t.Errorf("OkHandler response = '%#v', want '%#v'", got, expected)
+	}
+}
+//}
+
+@<list>{TestOkHandler}では、対象のHTTPハンドラである@<code>{OkHandler()}のレスポンスボディを@<code>{ioutil.ReadAll()}で読み取った際にエラーが発生するケースがありますが、ここでエラーが発生した場合は後続のレスポンスボディの値検証は不可なため、@<code>{t.Fatalf}を使ってテストをクラッシュさせています。
 
 ユニットテストにおいて致命的なエラーとして、テスト対象を実行・検証する前準備の処理の失敗が挙げられます。このような、処理の継続が不可能なものに対してはユニットテストをクラッシュさせることが効果的です。
 一方、致命的ではないエラーとしては、複数観点での検証のひとつの検証が失敗したケースなどが挙げられます。この場合、検証失敗によって以降の処理継続が不可能になるわけではありません。よって、この場合はユニットテストをクラッシュさせないことが効果的になるわけです。
