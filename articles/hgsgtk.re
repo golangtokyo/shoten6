@@ -44,7 +44,7 @@ func TestName(t *testing.T) {
 
 テスト関数名は、 @<code>{Test} で始め、以降の接頭辞 @<code>{Name} は大文字で始める必要があります。また、引数定義には、@<code>{*testing.T}を設定します。
 
-ひとつサンプルを見てましょう。hello と返却する@<code>{SayHello()}という関数があるとします。
+ひとつ例を見てましょう。hello と返却する@<code>{SayHello()}という関数があるとします。
 
 //list[sampleHello][SayHello()の実装][go]{
 package sample
@@ -129,7 +129,7 @@ FAIL	sample	0.008s
 では、適切なエラーレポートとはなんでしょうか。Goの公式FAQの"Why does Go not have assertions?"@<fn>{goFaqAssertions}では、"直接的かつ適切な内容"と説明されています。
 具体的には、"施行した内容"・"どのような入力を行ったか"・"実際の結果"・"期待される結果"の４つの内容が含まれていることが望ましいとされています。
 
-適切なエラーレポートを知るために、一度適切なエラーレポートができていないサンプルを見てましょう。
+適切なエラーレポートを知るために、一度適切なエラーレポートができていない例を見てましょう。
 
 //list[InStatusList][特定の文字列リストに引数が一致するか判定するInStatusList()][go]{
 func InStatusList(x string) bool {
@@ -209,7 +209,7 @@ Goにおいて適切なエラーハンドリングを実現するための具体
 
 @<code>{*testing.T.Error}/@<code>{*testing.T.Errorf}では、"対象のテストケースが失敗した"と記録されますが、実行は継続されます。それに対して、@<code>{*testing.T.Fatal}/@<code>{*testing.T.Fatalf}では、"対象のテストケースが失敗した"ことを記録した上で、同時に実行を停止し、後続のユニットテストの実行へと移ります。
 よって、処理の継続において致命的なエラーに対するハンドリングは@<code>{*testing.T.Fatal}/@<code>{*testing.T.Fatalf}で行い、そうではないエラーに対するハンドリングは、@<code>{*testing.T.Error}/@<code>{*testing.T.Errorf}で行います。
-ひとつ、@<code>{*testing.T.Fatalf}と@<code>{*testing.T.Errorf}を使い分けるサンプルを見てましょう。
+ひとつ、@<code>{*testing.T.Fatalf}と@<code>{*testing.T.Errorf}を使い分ける例を見てましょう。
 
 //list[OkHandler][OKを返すHTTPハンドラー()][go]{
 package sample
@@ -264,14 +264,14 @@ func TestOkHandler(t *testing.T) {
 }
 //}
 
-@<list>{TestOkHandler}では、対象のHTTPハンドラである@<code>{OkHandler()}のレスポンスボディを@<code>{ioutil.ReadAll()}で読み取った際にエラーが発生するケースがありますが、ここでエラーが発生した場合は後続のレスポンスボディの値検証は不可なため、@<code>{t.Fatalf}を使ってテストをクラッシュさせています。
+@<list>{TestOkHandler}では、対象のHTTPハンドラである@<code>{OkHandler()}のレスポンスボディを@<code>{ioutil.ReadAll()}で読み取った際にエラーが発生するケースがありますが、ここでエラーが発生した場合は後続のレスポンスボディの値検証は不可なため、@<code>{*testing.T.Fatalf}を使ってテストをクラッシュさせています。
 
 ユニットテストにおいて致命的なエラーとして、テスト対象を実行・検証する前準備の処理の失敗が挙げられます。このような、処理の継続が不可能なものに対してはユニットテストをクラッシュさせることが効果的です。
 一方、致命的ではないエラーとしては、複数観点での検証のひとつの検証が失敗したケースなどが挙げられます。この場合、検証失敗によって以降の処理継続が不可能になるわけではありません。よって、この場合はユニットテストをクラッシュさせないことが効果的になるわけです。
 
-適切なエラーハンドリングを行うことによって、致命的ではないエラーである以上一回の実行で多くのエラーをプログラマはユニットテストの失敗結果を得ることができます。適切なエラーハンドリングができていない例として@<list>{TestFizzBuzzGetMsg}のようなテストコードが挙げられます。
+適切なエラーハンドリングを行うことによって、一回のユニットテスト実行で多くのエラー結果を得ることができます。この利点を実感するために、適切なエラーハンドリングができていない例を見てましょう。
 
-//list[FizzBuzzGetMsg][fizzbuzz.go][go]{
+//list[FizzBuzzGetMsg][数値に対してFizzBuzz判定をするfizzbuzz.GetMsg][go]{
 package fizzbuzz
 
 import "strconv"
@@ -292,7 +292,9 @@ func GetMsg(num int) string {
 }
 //}
 
-//list[TestFizzBuzzGetMsg][fizzbuzz_test.go][go]{
+@<list>{FizzBuzzGetMsg}に対して適切なエラーハンドリングをしないテストコードを書いてみます。
+
+//list[TestFizzBuzzGetMsg][適切なエラーハンドリングができていない例][go]{
 func TestGetMsg(t *testing.T) {
 	var num int
 	var want string
@@ -325,7 +327,7 @@ func TestGetMsg(t *testing.T) {
 
 すべてのエラーを、@<code>{*testing.T.Fatalf}でハンドリングでしています。ユニットテストが通っている間はこれでも問題ないように見えるかもしれません。では、@<list>{FizzBuzzGetMsg}に２箇所バグが侵入してしまったケースを考えてみましょう。
 
-//list[BuggFizzBuzzGetMsg][fizzbuzz.go][go]{
+//list[BugFizzBuzzGetMsg][２箇所バグが侵入したfizzbuzz.GetMsg][go]{
 package fizzbuzz
 
 import "strconv"
@@ -346,18 +348,18 @@ func GetMsg(num int) string {
 }
 //}
 
-@<list>{BuggFizzBuzzGetMsg}の変更によって２箇所のバグが侵入しました。ここで、@<list>{TestFizzBuzzGetMsg}を実行してみましょう。
+@<list>{BugFizzBuzzGetMsg}の変更によって２箇所のバグが侵入しました。ここで、@<list>{TestFizzBuzzGetMsg}を実行してみましょう。
 
-//list[ExecuteTestFizzBuzzGetMsg][GetMsgの戻り値検証で失敗した場合（１）][]{
+//list[ExecuteTestFizzBuzzGetMsg][２箇所のバグのうち１箇所のみ失敗結果として表示される][]{
 === RUN   TestGetMsg
 --- FAIL: TestGetMsg (0.00s)
     fizzbuzz_test.go:47: GetMsg(15) = Buzz, want FizzBuzz
 FAIL
 //}
 
-最初の１箇所のみがエラー結果として得られました。もう１つ侵入したバグに対するエラー結果を得ることはできませんでした。このテストケースではひとつの検証パターンの失敗を致命的なエラーとして扱いハンドリングしています。そのため、１回の実行によって得られる情報が少ないため、何度も修正しては現れるエラーに対して修正を繰り返さなければなりません。もし、@<code>{*testing.T.Errorf}でハンドリングしていた場合は@<list>{ExecuteTestFizzBuzzGetMsgBetter}のように１回で多くの情報を得ることができます。
+最初の１箇所のみがエラー結果として得られました。もう１つ侵入したバグに対するエラー結果を得ることはできませんでした。このテストコードでは、処理の継続にとって致命的なエラーではないものもすべて@<code>{*testing.T.Fatalf}でハンドリングしています。結果、１回の実行によって得られる情報が少ないため、"何度も修正しては現れる別のエラーに対して修正を繰り返さなければならない"状況を作ってしまう可能性があります。もし、@<code>{*testing.T.Errorf}でハンドリングしていた場合は@<list>{ExecuteTestFizzBuzzGetMsgBetter}のように１回で多くの情報を得ることができます。
 
-//list[ExecuteTestFizzBuzzGetMsgBetter][t.Errorfでハンドリングした場合のユニットテスト結果][]{
+//list[ExecuteTestFizzBuzzGetMsgBetter][適切なエラーハンドリングした場合のテスト結果][]{
 === RUN   TestGetMsg
 --- FAIL: TestGetMsg (0.00s)
     fizzbuzz_test.go:47: GetMsg(15) = Buzz, want FizzBuzz
@@ -365,7 +367,7 @@ FAIL
 FAIL
 //}
 
-このように、適切なエラーハンドリングが行われておらず全てのエラーでクラッシュしていた場合、プログラマはエラーを直さない限り以降どのような結果が得られるかわかりません。一回の実行結果から得られる情報量がすくないため都度エラーを直しては次のエラーを調査するといった非効率的な方法でユニットテストをメンテナンスすることになります。プログラマ自身のユニットテストメンテナンスコストを鑑みても、適切なエラーハンドリングは重要です。
+このように、適切なエラーハンドリングが行われておらず全てのエラーでクラッシュしていた場合、プログラマはエラーを直さない限り、クラッシュした箇所以降を実行した際にどのような結果が得られるかわかりません。一回の実行結果から得られる情報量がすくないため、保守するプログラマは"都度エラーを直しては次のエラーを調査する"といった方法を選択することになります。ユニットテスト維持コストを鑑みても、適切なエラーハンドリングは意識する必要があります。
 
 == テーブル駆動テスト・サブテスト
 
@@ -489,7 +491,7 @@ ok  	fizzbuzz	0.008s
 
 == テストヘルパー
 
-費用対効果の高いユニットテストを目指す上で、テストコードの可読性やテストコードの追加のしやすさは重要な要素です。テストコードの可読性はドキュメンテーションとしての価値を高め、追加のしやすさは新規テストコードの作成コストの削減に繋がります。これら２つを狙う上でテストヘルパーを作成・利用する方法があります。実際に使用するサンプルを見ていきましょう。
+費用対効果の高いユニットテストを目指す上で、テストコードの可読性やテストコードの追加のしやすさは重要な要素です。テストコードの可読性はドキュメンテーションとしての価値を高め、追加のしやすさは新規テストコードの作成コストの削減に繋がります。これら２つを狙う上でテストヘルパーを作成・利用する方法があります。実際に使用する例を見ていきましょう。
 
 //list[GetTomorrow][GetTomorrow][go]{
 func GetTomorrow(tm time.Time) time.Time {
