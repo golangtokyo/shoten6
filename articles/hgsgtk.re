@@ -636,8 +636,9 @@ import (
 	"github.com/hgsgtk/go-snippets/testing-codes/sample"
 )
 
-func TestGetTomorrowUsingCmp(t *testing.T) {
-	tm := time.Date(2019, time.April, 14, 0, 0, 0, 0, testutil.GetJstLocation(t))
+func TestGetTomorrow(t *testing.T) {
+	tm := time.Date(2019, time.April, 14, 0, 0, 0, 0,
+		testutil.GetJstLocation(t))
 
 	want := tm.AddDate(0, 0, 1)
 	got := sample.GetTomorrow(tm)
