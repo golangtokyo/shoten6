@@ -1,4 +1,4 @@
-= 費用対効果の高いユニットテストを実現するためのGoのテスト基礎
+= 費用対効果の高いユニットテストを実現するためのGoの基礎技法
 
 == はじめに
 
@@ -7,13 +7,15 @@
 //footnote[basebank][@<href>{https://basebank.jp/}]
 //footnote[hgsgtk][@<href>{https://twitter.com/hgsgtk}]
 
-この章では、ユニットテストについて扱います。ユニットテストを書くことは、業務でのアプリケーション開発にとって重要な要素のひとつです。ユニットテストの書き方についての記事は多数ありますが、"なぜその方法が良いのか"という考え方についての理解の場は少ないです。そのため、本章では、"どのようなユニットテストが効果的か"という点とそれをどう実現するかについて説明します。この章を読むことで、普段何気なく書くユニットテストについて立ち止まって考える機会になることを期待しています。
+この章では、ユニットテストについて扱います。ユニットテストを書くことは、業務でのアプリケーション開発にとって重要な要素のひとつです。ユニットテストの書き方についての記事は多数ありますが、"なぜその方法が良いのか"という考え方についての理解の場は少ないです。そのため、本章では、"どのようなユニットテストが効果的か"という点と"それをどう実現するか"について説明します。この章を読むことで、普段何気なく書くユニットテストについて立ち止まって考える機会になることを期待しています。
 
 == ユニットテストとは
+
 本章で扱う"ユニットテスト"という言葉について予め定義しておきます。ユニットテストとは、関数やメソッドレベルでの動作保証を行うテストです。ユニットテストを行う手段として手動によるユニットテスト・自動化されたユニットテストの２種類があります。手動によるユニットテストとは、事前に用意したユニットテスト仕様書をもとに人間の手によって行われるユニットテストです。対照的に、自動化されたユニットテストでは、プログラムにより実行可能なテストコードを作成し実行します。本章で扱うのは自動化されたユニットテストですので、"テストコードをどのように書いていくか"という点について焦点をあてていきます。
 
 == Goのユニットテストの基本
-まず、Goのユニットテスト作成の基本をおさえましょう。Goでは、ユニットテストを行うためのコマンドとして、@<code>{go test}@<fn>{gotestcmd} というサブコマンドが用意されています。@<code>{_test.go}というサフィックスの付いたファイルを対象にしてユニットテストを実行します。
+
+まず、Goのユニットテスト作成の基本をおさえましょう。Goでは、ユニットテストを行うためのコマンドとして、@<code>{go test}@<fn>{gotestcmd} というサブコマンドが用意されています。このコマンドは、@<code>{_test.go}というサフィックスの付いたファイルを対象にしてユニットテストを実行します。
 
 //footnote[gotestcmd][@<href>{https://golang.org/pkg/cmd/go/internal/test/}]
 
@@ -22,13 +24,15 @@
 ok  	fizzbuzz	0.006s
 //}
 
-@<code>{_test.go} で終わるファイルは、@<code>{go build} によってビルドした場合、ビルド対象となりません。一方、 @<code>{go test} でビルドされた場合には対象パッケージの一部としてビルドされます。
+@<code>{_test.go}で終わるファイルは、@<code>{go build}@<fn>{gobuild}によってビルドした場合、ビルド対象となりません。一方、 @<code>{go test}によってビルドされた場合には、対象パッケージの一部としてビルドされます。
+
+//footnote[gobuild][@<href>{https://golang.org/cmd/go/#hdr-Compile_packages_and_dependencies}]
 
 テストコードを作成するには、 testing@<fn>{testing} パッケージをインポートしたファイルで、@<list>{sampleTestGo}のようなシグネチャを持った関数を作成します。
 
 //footnote[testing][@<href>{https://golang.org/pkg/testing/}]
 
-//list[sampleTestGo][sample_test.go][go]{
+//list[sampleTestGo][sampleパッケージのName()に対するユニットテスト][go]{
 package sample_test
 
 import "testing"
@@ -42,7 +46,7 @@ func TestName(t *testing.T) {
 
 ひとつサンプルを見てましょう。hello と返却する@<code>{SayHello()}という関数があるとします。
 
-//list[sampleHello][sample.go][go]{
+//list[sampleHello][SayHello()の実装][go]{
 package sample
 
 func SayHello() string {
@@ -52,7 +56,7 @@ func SayHello() string {
 
 この場合、@<list>{sampleTestHello}のようなテストコードを作成することができます。
 
-//list[sampleTestHello][sample_test.go][go]{
+//list[sampleTestHello][SayHello()に対するテストコード][go]{
 func TestSayHello(t *testing.T) {
 	want := "hello"
 	// SayHelloの戻り値が期待値と異なる場合エラーとして処理する
@@ -62,9 +66,9 @@ func TestSayHello(t *testing.T) {
 }
 //}
 
-作成したユニットテストを先程紹介した @<code>{go test} で実行すると、ユニットテストが通ることが確認できます。詳細結果を表示するため、@<code>{-v}オプションを設定して実行します。
+作成したユニットテストを先程紹介した @<code>{go test} で実行すると、ユニットテストが通ることが確認できます。（詳細結果を表示するため、@<code>{-v}オプションを設定して実行します。）
 
-//list[sampleTestExecution][作成したSayHelloに対するユニットテストが通る][]{
+//list[sampleTestExecution][TestSayHello()が成功する][]{
 % go test -v sample
 === RUN   TestSayHello
 --- PASS: TestSayHello (0.00s)
@@ -74,7 +78,7 @@ ok  	sample	0.007s
 
 このユニットテストが失敗する場合は@<list>{sampleTestExecutionFailed}のような出力結果が得られます。
 
-//list[sampleTestExecutionFailed][作成したSayHelloに対するユニットテストが失敗する][]{
+//list[sampleTestExecutionFailed][TestSayHello()が失敗する][]{
 % go test -v sample
 --- FAIL: TestSayHello (0.00s)
   sample_test.go:16: SayHello() = hellox, want hello
@@ -113,6 +117,7 @@ FAIL	sample	0.008s
 ソフトウェア開発のコスト全体を考慮すると、費用対効果の高いユニットテストになるように意識することは非常に重要です。以降、費用対効果の高いユニットテストを目指していくために意識するべき点について説明します。
 
 == 適切なエラーレポート
+
 ユニットテスト自体を維持するコストの発生について"費用対効果の高いユニットテストという考え方"にて説明しました。維持コストを最小限におさえるために意識するべき点のひとつとして、適切なエラーレポートという観点があります。ユニットテストが失敗した際に"なぜ失敗したのか"について、それを見るプログラマに対してわかりやすいレポートである必要があります。わかりやすいレポートにすることによって、ユニットテストの失敗に対する調査・解決にかかるコストを下げれます。
 
 では、適切なエラーレポートとはなんでしょうか。Goの公式FAQの"Why does Go not have assertions?"@<fn>{goFaqAssertions}では、直接的かつ適切な内容と説明されています。
@@ -332,6 +337,7 @@ FAIL
 == テーブル駆動テスト・サブテスト
 
 === テーブル駆動テスト
+
 Goでは非常に広く使われているユニットテストの技法として、テーブル駆動テスト@<fn>{wikiTableDrivenDevelopment}というものがあります。@<list>{FizzBuzzGetMsg}をテーブル駆動テストで書いてみましょう。
 
 //footnote[wikiTableDrivenDevelopment][@<href>{https://github.com/golang/go/wiki/TableDrivenTests}]
@@ -449,6 +455,7 @@ ok  	fizzbuzz	0.008s
 //footnote[tparallel][@<href>{https://golang.org/pkg/testing/#T.Parallel}]
 
 == テストヘルパー
+
 費用対効果の高いユニットテストを目指す上で、テストコードの可読性やテストコードの追加のしやすさは重要な要素です。テストコードの可読性はドキュメンテーションとしての価値を高め、追加のしやすさは新規テストコードの作成コストの削減に繋がります。これら２つを狙う上でテストヘルパーを作成・利用する方法があります。実際に使用するサンプルを見ていきましょう。
 
 //list[GetTomorrow][GetTomorrow][go]{
@@ -521,6 +528,7 @@ func TestGetTomorrowUsingCmp(t *testing.T) {
 @<code>{testutil.GetJstLocation}を呼び出すだけになり、テストコード冒頭にあったエラーハンドリングはなくなりました。このようにテストヘルパーは、"なにをテストしているのか"について伝えやすいテストコードを作成する上で有効な働きをしてくれます。
 
 == 外部テストパッケージ
+
 テストコードのパッケージ名について、対象のパッケージと同一のパッケージ名にするか、@<code>{xxx_test}という外部テストパッケージを行う２つの選択肢があります。
 外部テストパッケージを選択した場合、対象とは異なるパッケージになるため、パッケージの非公開機能などにはアクセスできなくなります。
 
