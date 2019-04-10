@@ -449,7 +449,7 @@ ok  	fizzbuzz	0.008s
 //footnote[tparallel][@<href>{https://golang.org/pkg/testing/#T.Parallel}]
 
 == テストヘルパー
-費用対効果の高いユニットテストを目指す上で、テストコードの可読性やテストコードの追加のしやすさは重要な要素です。テストコードの可読性はドキュメンテーションとしての価値を高め、追加のしやすさは新規テストコードの作成コストの削減に繋がります。これら２つを狙う上でテストヘルパーを作成・利用する方法があります。
+費用対効果の高いユニットテストを目指す上で、テストコードの可読性やテストコードの追加のしやすさは重要な要素です。テストコードの可読性はドキュメンテーションとしての価値を高め、追加のしやすさは新規テストコードの作成コストの削減に繋がります。これら２つを狙う上でテストヘルパーを作成・利用する方法があります。実際に使用するサンプルを見ていきましょう。
 
 //list[GetTomorrow][GetTomorrow][go]{
 func GetTomorrow(tm time.Time) time.Time {
@@ -457,7 +457,9 @@ func GetTomorrow(tm time.Time) time.Time {
 }
 //}
 
-//list[TestGetTomorrowBefore][TestGetTomorrow][go]{
+@<list>{GetTomorrow}の関数のユニットテストを作成します。まずは、テストヘルパーを使用しない場合のテストケースを示します。
+
+//list[TestGetTomorrowBefore][テストヘルパーを使用しない場合][go]{
 func TestGetTomorrow(t *testing.T) {
 	jst, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
@@ -473,13 +475,22 @@ func TestGetTomorrow(t *testing.T) {
 }
 //}
 
+@<list>{TestGetTomorrowBefore}では、テスト対象である@<code>{GetTomorrow}実行前に Asia/Tokyo のtimezoneを用意して失敗した場合はエラーハンドリングしています。これをテストヘルパーに切り出してみます。
+
 ===[column] 値比較のライブラリgithub.com/google/go-cmp
 @<list>{TestGetTomorrowBefore}で@<code>{cmp.Diff}という関数にて値を比較しています。これは、github.com/google/go-cmp@<fn>{gocmp}というGoogle非公式の値比較ライブラリが提供する機能を利用しています。github.com/google/go-cmpは、JSON形式の文字列や構造体の値をテストする際に便利なライブラリなので、テストコードでの値比較手段として採用を検討してみるとよいでしょう。
 
 //footnote[gocmp][@<href>{https://github.com/google/go-cmp}]
 ===[/column]
 
-//list[TestHelperGetJstLocation][GetJstLocation][go]{
+//list[TestHelperGetJstLocation][テストヘルパーを作成する][go]{
+package testutil
+
+import (
+	"testing"
+	"time"
+)
+
 func GetJstLocation(t *testing.T) *time.Location {
 	t.Helper()
 
@@ -491,9 +502,11 @@ func GetJstLocation(t *testing.T) *time.Location {
 }
 //}
 
-testing パッケージには、@<code>{*testing.T.Helper}@<fn>{thelper}があります。@<code>{*testing.T.Helper}を呼び出すことでテストヘルパー関数として扱われます。
+testing パッケージには、@<code>{*testing.T.Helper}@<fn>{thelper}があります。@<code>{*testing.T.Helper}を呼び出すことでテストヘルパー関数として扱われます。そのため、@<list>{TestHelperGetJstLocation}の@<code>{GetJstLocation}では、引数に@<code>{*testing.T}を受け取り@<code>{*testing.T.Helper}を呼び出しています。また、エラーが発生した場合はエラーを戻り値として返すのではなく、@<code>{*testing.T.Fatalf}でテストを失敗させています。これは、このテストヘルパーを呼び出すテストコードからエラーハンドリングを排除できるメリットがあります。作成したテストヘルパーを利用して@<list>{TestGetTomorrowBefore}を書き換えてみます。
 
-//list[TestGetTomorrowAfter][TestGetTomorrow][go]{
+//footnote[thelper][@<href>{https://golang.org/pkg/testing/#T.Helper}]
+
+//list[TestGetTomorrowAfter][テストヘルパーを使用する例][go]{
 func TestGetTomorrowUsingCmp(t *testing.T) {
 	tm := time.Date(2019, time.April, 14, 0, 0, 0, 0, testutil.GetJstLocation(t))
 
@@ -505,7 +518,7 @@ func TestGetTomorrowUsingCmp(t *testing.T) {
 }
 //}
 
-//footnote[thelper][@<href>{https://golang.org/pkg/testing/#T.Helper}]
+@<code>{testutil.GetJstLocation}を呼び出すだけになり、テストコード冒頭にあったエラーハンドリングはなくなりました。このようにテストヘルパーは、"なにをテストしているのか"について伝えやすいテストコードを作成する上で有効な働きをしてくれます。
 
 == 外部テストパッケージ
 テストコードのパッケージ名について、対象のパッケージと同一のパッケージ名にするか、@<code>{xxx_test}という外部テストパッケージを行う２つの選択肢があります。
