@@ -196,21 +196,22 @@ FAIL
 
 == 適切なエラーハンドリング
 
-Goの特徴的な言語仕様として、 アサーションが提供されていない点が挙げられます。これは、Goの公式FAQの"Why does Go not have assertions?"@<fn>{goFaqAssertions}にて理由が説明されていますが、"アサートが適切なエラーハンドリングとエラーレポートを考慮せずに済ますためのツールとして使われている"という経験上の懸念より提供されていません。このことからも、Goのユニットテストにおいて、適切なエラーハンドリングが重要なことがわかります。適切なエラーハンドリングとはなんでしょうか。適切なエラーハンドリングについて、"致命的ではないエラーが発生した際にクラッシュさせずに処理を継続させることである"と説明されています。
+Goの特徴的な言語仕様として、 アサーションが提供されていない点が挙げられます。これは、Goの公式FAQの"Why does Go not have assertions?"@<fn>{goFaqAssertions}にて理由が説明されていますが、"アサートが適切なエラーハンドリングとエラーレポートを考慮せずに済ますためのツールとして使われている"という経験上の懸念より提供されていません。このことからも、Goのユニットテストにおいて、適切なエラーハンドリングが重要なことがわかります。では、適切なエラーハンドリングとはなんでしょうか。適切なエラーハンドリングとは、致命的ではないエラーが発生した際にクラッシュさせずに処理を継続させることを示します。
 
 //footnote[goFaqAssertions][@<href>{https://golang.org/doc/faq#assertions}]
 
-では、Goにおいて適切なエラーハンドリングを実現するためには、どのようにすればよいのでしょうか。Goでは testing パッケージが提供する @<code>{*testing.T.Error}@<fn>{terror}/@<code>{*testing.T.Errorf}@<fn>{terrorf}・@<code>{*testing.T.Fatal}@<fn>{tfatal}/@<code>{*testing.T.Fatalf}@<fn>{tfatalf}というAPIが提供しています。それらを適切に使い分けることによって、適切なエラーハンドリングを実現します。
+Goにおいて適切なエラーハンドリングを実現するための具体的な方法について説明していきます。Goではエラーハンドリングのために testing パッケージが@<code>{*testing.T.Error}@<fn>{terror}/@<code>{*testing.T.Errorf}@<fn>{terrorf}・@<code>{*testing.T.Fatal}@<fn>{tfatal}/@<code>{*testing.T.Fatalf}@<fn>{tfatalf}というAPIを提供しています。それらを適切に使い分けることによって、適切なエラーハンドリングを実現します。
 
 //footnote[terror][@<href>{https://golang.org/pkg/testing/#T.Error}]
 //footnote[terrorf][@<href>{https://golang.org/pkg/testing/#T.Errorf}]
 //footnote[tfatal][@<href>{https://golang.org/pkg/testing/#T.Fatal}]
 //footnote[tfatalf][@<href>{https://golang.org/pkg/testing/#T.Fatalf}]
 
-@<code>{*testing.T.Errorf}では、"対象のテストケースが失敗した"と記録されますが、実行は継続されます。それに対して、@<code>{*testing.T.Fatalf}では、@<code>{*testing.T.Errorf}と同様に"対象のテストケースが失敗した"ことを記録しますが、同時に実行を停止し、次のテストケースの実行へと移ります。
-よって、致命的なエラーに対するハンドリングは@<code>{*testing.T.Fatalf}で行い、そうではないエラーに対するハンドリングは、@<code>{*testing.T.Errorf}で行います。
+@<code>{*testing.T.Error}/@<code>{*testing.T.Errorf}では、"対象のテストケースが失敗した"と記録されますが、実行は継続されます。それに対して、@<code>{*testing.T.Fatal}/@<code>{*testing.T.Fatalf}では、"対象のテストケースが失敗した"ことを記録した上で、同時に実行を停止し、後続のユニットテストの実行へと移ります。
+よって、処理の継続において致命的なエラーに対するハンドリングは@<code>{*testing.T.Fatal}/@<code>{*testing.T.Fatalf}で行い、そうではないエラーに対するハンドリングは、@<code>{*testing.T.Error}/@<code>{*testing.T.Errorf}で行います。
+ひとつ、@<code>{*testing.T.Fatalf}と@<code>{*testing.T.Errorf}を使い分けるサンプルを見てましょう。
 
-//list[GetNum][sample.go][go]{
+//list[GetNum][受け取った文字列を数値に変換して返すGetNum()][go]{
 package sample
 
 import (
@@ -228,7 +229,9 @@ func GetNum(str string) (int, error) {
 }
 //}
 
-//list[TestGetNum][sample_test.go][go]{
+@<list>{GetNum}に対して@<code>{*testing.T.Fatalf}と@<code>{*testing.T.Errorf}両方を使用してテストコードを書きます。
+
+//list[TestGetNum][GetNum()に対するテストコード][go]{
 func TestGetNum(t *testing.T) {
 	str := "7"
 	got, err := sample.GetNum(str)
@@ -241,6 +244,8 @@ func TestGetNum(t *testing.T) {
 	}
 }
 //}
+
+@<list>{TestGetNum}では、@<code>{GetNum()}からエラーが返却されることは想定していないため、後続の戻り値確認の前で処理をクラッシュさせています。
 
 ユニットテストにおいて致命的なエラーとして、テスト対象を実行・検証する前準備の処理の失敗が挙げられます。このような、処理の継続が不可能なものに対してはユニットテストをクラッシュさせることが効果的です。
 一方、致命的ではないエラーとしては、複数観点での検証のひとつの検証が失敗したケースなどが挙げられます。この場合、検証失敗によって以降の処理継続が不可能になるわけではありません。よって、この場合はユニットテストをクラッシュさせないことが効果的になるわけです。
