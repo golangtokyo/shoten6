@@ -374,7 +374,7 @@ FAIL
 
 === テーブル駆動テスト
 
-Goでは非常に広く使われているユニットテストの技法として、テーブル駆動テスト@<fn>{wikiTableDrivenDevelopment}があります。@<list>{FizzBuzzGetMsg}をテーブル駆動テストで書いてみましょう。
+Goでは非常に広く使われているユニットテストの技法として、テーブル駆動テスト@<fn>{wikiTableDrivenDevelopment}があります。テーブル駆動テストでは、まず入力・期待値を含めたテストケースの一覧をテーブルとして作成します。早速、@<list>{FizzBuzzGetMsg}で例としてあげた@<code>{fizzbuzz.GetMsg}に対するユニットテストを、テーブル駆動テストで書いてみましょう。
 
 //footnote[wikiTableDrivenDevelopment][@<href>{https://github.com/golang/go/wiki/TableDrivenTests}]
 
@@ -409,11 +409,11 @@ func TestGetMsg(t *testing.T) {
 }
 //}
 
-テーブル駆動テストでは、必要に応じた新たな表の項目を追加するのが簡単であり、判定ロジックの複製の不要です。そのため、テストコードに対する修正・追加コストの低いユニットテストを実現する方法になります。あわせて、テストコードを読む際にも、対象関数のテストパターンが表にかかれているので可読性の高いユニットテストとなります。さらに、判定ロジックの複製が不要な分、これまで説明してきた適切なエラーレポート・エラーハンドリングに集中することができます。
+テーブル駆動テストでは、必要に応じた新たな表の項目を追加するのが簡単であり、判定ロジックの複製の不要です。そのため、テストコードに対する修正・追加コストの低いユニットテストを実現する方法になります。あわせて、テストコードを読む際にも、対象関数のテストパターンが表にかかれているので可読性の高いユニットテストとなります。さらに、判定ロジックの複製が不要な分、適切なエラーレポート・エラーハンドリングに集中することができます。
 
 === サブテスト
 
-テーブル駆動テストとあわせてよく使用されるものとして、サブテスト@<fn>{subtest}があります。サブテストは@<code>{*testing.T.Run}@<fn>{trun}を使用することによって作ることができます。先程の@<list>{TestFizzBuzzGetMsgTableDriven}をサブテストを作るように書き換えてみましょう。
+テーブル駆動テストとあわせてよく使用されるものとして、サブテスト@<fn>{subtest}があります。サブテストは@<code>{*testing.T.Run}@<fn>{trun}を使用することによって作ることができます。先程@<list>{TestFizzBuzzGetMsgTableDriven}にて例としてあげたテーブル駆動テストを、サブテストを使うように書き換えてみましょう。
 
 //footnote[subtest][@<href>{https://blog.golang.org/subtests}]
 //footnote[trun][@<href>{https://golang.org/pkg/testing/#T.Run}]
@@ -449,7 +449,11 @@ func TestGetMsg(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			if got := fizzbuzz.GetMsg(tt.num); got != tt.want {
-				t.Errorf("GetMsg(%d) = %s, want %s", tt.num, got, tt.want)
+				t.Errorf(
+					"GetMsg(%d) = %s, want %s",
+					tt.num, got,
+					tt.want,
+				)
 			}
 		})
 	}
@@ -472,7 +476,7 @@ func TestGetMsg(t *testing.T) {
 PASS
 //}
 
-テスト実行結果にサブテスト名が表示されるようになりました。サブテストにすることで特定のサブテストのみを実行することができます。たとえば、@<code>{divisible_by_15}のみを実行したい場合は、@<code>{--run}オプションをtestコマンドにわたすことで実現できます。
+テスト実行結果にサブテスト名が表示されるようになりました。サブテストにすることで特定のサブテストのみを実行することができます。たとえば、@<code>{divisible_by_15}のみを実行したい場合は、@<code>{-run}オプションを@<code>{test}コマンドにわたすことで実現できます。
 
 //list[ExectuteSpeficiedTestFizzBuzzGetMsgSubTest][特定のサブテストを実行する][]{
 % go test fizzbuzz -run TestGetMsg/divisible_by_15 -v
@@ -484,9 +488,9 @@ PASS
 ok  	fizzbuzz	0.008s
 //}
 
-サブテストを活用することで、それぞれのテストケースにテストケース名を与えることができることを紹介しました。これは、保守するために読むプログラマに対して意図を伝えやすいテストコードの作成に繋がります。また、特定のサブテストのみを実行できることによりデバッグ時に必要最小限のユニットテスト実行で済むためデバッグコストの削減に繋がります。
+サブテストを活用することで、それぞれのテストケースにテストケース名を与えることができることを紹介しました。これによって、テストコードを読むプログラマに対して意図を伝えやすくなります。また、特定のサブテストのみを実行できることで、デバッグ時に必要最小限のユニットテスト実行で済むためデバッグコストの削減に繋がります。
 
-さらに、@<code>{*testing.T.Parallel}@<fn>{tparallel}を合わせて使うことで並行でのユニットテスト実行が可能になります。並行処理が可能になることでテストケース全体の実行時間を短縮することができます。
+さらに、@<code>{*testing.T.Parallel}@<fn>{tparallel}を合わせて使うことで並行でのユニットテスト実行が可能です。並行処理が可能になることでテストケース全体の実行時間を短縮できます。
 
 //footnote[tparallel][@<href>{https://golang.org/pkg/testing/#T.Parallel}]
 
