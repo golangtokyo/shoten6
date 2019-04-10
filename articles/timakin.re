@@ -143,10 +143,10 @@ TwitterやFacebookのSNSでシェアされるときに、自社サービスの�
 
 これらのインターフェースを実装した構造体を、ファクトリとなる構造体を通じて初期化します。
 なお、テキストの処理は画像との相対的な位置を特定しないとできないものも多いため、@<code>{Drawer}が@<code>{Labeler}を保持することにしました。
-処理のエントリーポイントとなる@<code>{Proccessor}を@<list>{processor}のように実装します。
+処理のエントリーポイントとなる@<code>{Proccessor}を、@<list>{proc}のように実装します。
 @<code>{Run()}という、各インターフェースの実装を呼び出す抽象的なメソッドを定義することで、クーポン画像以外の生成にも活用できるようになっています。
 
-//list[processor][Proccessorの初期化と実行][go]{
+//list[proc][Proccessorの初期化と実行][go]{
 type Processor interface {
 	Run() error
 }
@@ -444,4 +444,4 @@ func (je *JPEGEncoder) Encode(frame *image.RGBA) error {
 
 fontの読み込みや画像処理を並列で実行する場合の効率的なワーカー実装など、まだまだ課題が多い分野ではありますが、
 言語標準のパッケージでここまでシンプルに画像処理を実装できるインターフェースを持つものは、なかなかありません。
-ぜひGoの@<code{image}パッケージを実際のサービス開発に活用してみてください。
+ぜひGoの@<code>{image}パッケージを実際のサービス開発に活用してみてください。
