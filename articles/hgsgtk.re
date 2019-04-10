@@ -496,15 +496,15 @@ ok  	fizzbuzz	0.008s
 
 == テストヘルパー
 
-費用対効果の高いユニットテストを目指す上で、テストコードの可読性やテストコードの追加のしやすさは重要な要素です。テストコードの可読性はドキュメンテーションとしての価値を高め、追加のしやすさは新規テストコードの作成コストの削減に繋がります。これら２つを狙う上でテストヘルパーを作成・利用する方法があります。実際に使用する例を見ていきましょう。
+費用対効果の高いユニットテストを目指す上で、テストコードの可読性やテストコードの追加のしやすさは重要な要素です。テストコードの可読性はドキュメンテーションとしての価値を高め、追加のしやすさは新規テストコードの作成コストの削減に繋がります。これら２つを目指すためのひとつの方法として、テストヘルパーを作成・利用する方法があります。実際に使用する例を見ていきましょう。
 
-//list[GetTomorrow][GetTomorrow][go]{
+//list[GetTomorrow][明日の時間を返すGetTomorrow()][go]{
 func GetTomorrow(tm time.Time) time.Time {
 	return tm.AddDate(0, 0, 1)
 }
 //}
 
-@<list>{GetTomorrow}の関数のユニットテストを作成します。まずは、テストヘルパーを使用しない場合のテストケースを示します。
+@<list>{GetTomorrow}の関数@<code>{GetTomorrow()}に対するユニットテストを作成します。まずは、テストヘルパーを使用しない場合のテストケースを示します。
 
 //list[TestGetTomorrowBefore][テストヘルパーを使用しない場合][go]{
 func TestGetTomorrow(t *testing.T) {
@@ -549,7 +549,7 @@ func GetJstLocation(t *testing.T) *time.Location {
 }
 //}
 
-testing パッケージには、@<code>{*testing.T.Helper}@<fn>{thelper}があります。@<code>{*testing.T.Helper}を呼び出すことでテストヘルパー関数として扱われます。そのため、@<list>{TestHelperGetJstLocation}の@<code>{GetJstLocation}では、引数に@<code>{*testing.T}を受け取り@<code>{*testing.T.Helper}を呼び出しています。また、エラーが発生した場合はエラーを戻り値として返すのではなく、@<code>{*testing.T.Fatalf}でテストを失敗させています。これは、このテストヘルパーを呼び出すテストコードからエラーハンドリングを排除できるメリットがあります。作成したテストヘルパーを利用して@<list>{TestGetTomorrowBefore}を書き換えてみます。
+testing パッケージは、@<code>{*testing.T.Helper}@<fn>{thelper}を提供してます。@<code>{*testing.T.Helper}を呼び出すことで、呼び出した関数はテストヘルパー関数として扱われます。そのため、@<list>{TestHelperGetJstLocation}の@<code>{GetJstLocation}では、引数に@<code>{*testing.T}を受け取り@<code>{*testing.T.Helper}を呼び出しています。また、エラーが発生した場合はエラーを戻り値として返すのではなく、@<code>{*testing.T.Fatalf}でテストを失敗させています。これは、このテストヘルパーを呼び出すテストコードからエラーハンドリングを排除できるメリットがあります。作成したテストヘルパーを利用して@<list>{TestGetTomorrowBefore}を書き換えてみます。
 
 //footnote[thelper][@<href>{https://golang.org/pkg/testing/#T.Helper}]
 
