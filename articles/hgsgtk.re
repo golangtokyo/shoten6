@@ -13,10 +13,12 @@
 本章で扱う"ユニットテスト"という言葉について予め定義しておきます。ユニットテストとは、関数やメソッドレベルでの動作保証を行うテストです。ユニットテストを行う手段として手動によるユニットテスト・自動化されたユニットテストの２種類があります。手動によるユニットテストとは、事前に用意したユニットテスト仕様書をもとに人間の手によって行われるユニットテストです。本章では、自動化されたユニットテストを扱います。自動化されたユニットテストでは、プログラムにより実行可能なテストコードを作成します。
 
 == Goのユニットテストの基本
-まず、Goのユニットテスト作成の基本をおさえましょう。Goでは、ユニットテストを行うためのコマンドとして、@<code>{go test} というサブコマンドが用意されています。@<code>{_test.go}というサフィックスの付いたファイルを対象にしてユニットテストを実行します。
+まず、Goのユニットテスト作成の基本をおさえましょう。Goでは、ユニットテストを行うためのコマンドとして、@<code>{go test}@<fn>{gotestcmd} というサブコマンドが用意されています。@<code>{_test.go}というサフィックスの付いたファイルを対象にしてユニットテストを実行します。
+
+//footnote[gotestcmd][@<href>{https://golang.org/pkg/cmd/go/internal/test/}]
 
 //list[goTestExecution][go testによるユニットテスト実行][]{
-% go test github.com/hgsgtk/go-snippets/testing-codes/fizzbuzz
+% go test fizzbuzz
 ok  	fizzbuzz	0.006s
 //}
 
@@ -60,27 +62,27 @@ func TestSayHello(t *testing.T) {
 }
 //}
 
-作成したユニットテストを先程紹介した @<code>{go test} で実行すると、ユニットテストが通ることが確認できます。
+作成したユニットテストを先程紹介した @<code>{go test} で実行すると、ユニットテストが通ることが確認できます。詳細結果を表示するため、@<code>{-v}オプションを設定して実行します。
 
 //list[sampleTestExecution][作成したSayHelloに対するユニットテストが通る][]{
-% go test -v github.com/hgsgtk/go-snippets/testing-codes/sample
+% go test -v sample
 === RUN   TestSayHello
 --- PASS: TestSayHello (0.00s)
 PASS
-ok  	github.com/hgsgtk/go-snippets/testing-codes/sample	0.007s
+ok  	sample	0.007s
 //}
 
 このユニットテストが失敗する場合は@<list>{sampleTestExecutionFailed}のような出力結果が得られます。
 
 //list[sampleTestExecutionFailed][作成したSayHelloに対するユニットテストが失敗する][]{
-% go test -v github.com/hgsgtk/go-snippets/testing-codes/sample
+% go test -v sample
 --- FAIL: TestSayHello (0.00s)
   sample_test.go:16: SayHello() = hellox, want hello
 FAIL
-FAIL	github.com/hgsgtk/go-snippets/testing-codes/sample	0.008s
+FAIL	sample	0.008s
 //}
 
-ここまでが、Goのユニットテストを作る上での基礎知識になります。基本的にはこれまで紹介した知識で最低限のテストコードを作成できるようになります。
+ここまでが、Goのユニットテストを作る上での基本知識になります。基本的にはこれまで紹介した知識で最低限のテストコードを作成できるようになります。
 
 == 費用対効果の高いユニットテストという考え方
 
@@ -99,10 +101,12 @@ FAIL	github.com/hgsgtk/go-snippets/testing-codes/sample	0.008s
 //footnote[xutpLink][@<href>{https://www.amazon.co.jp/dp/0131495054}]
 
 ソフトウェア開発プロジェクトにおいて、初めてユニットテストを書き始める初期時点では、新しい技術に対する学習・実践コストが発生します。それにより、ユニットテストのコストが嵩む時期が訪れます。しかし、じきにユニットテストに対する習熟や効率化により追加コストが落ち着いてくると、@<img>{hgsgtk-test-economical-graph}のように、ユニットテストがもたらす効果である節約コストと相殺されていきます。
-しかし、費用対効果の低いユニットテストが多い場合、ユニットテストがもたらす節約コストが少ないわりに、ユニットテスト自体のコストが大きくなり、@<img>{hgsgtk-test-uneconomical-graph}のようにソフトウェア開発のトータルのコストが増大していきます。
 
 //image[hgsgtk-test-economical-graph][費用対効果の高いユニットテストの場合][scale=0.5]{
 //}
+
+しかし、費用対効果の低いユニットテストが多い場合、ユニットテストがもたらす節約コストが少ないわりに、ユニットテスト自体のコストが大きくなり、@<img>{hgsgtk-test-uneconomical-graph}のようにソフトウェア開発のトータルのコストが増大していきます。
+
 //image[hgsgtk-test-uneconomical-graph][費用対効果の低いユニットテストの場合][scale=0.5]{
 //}
 
@@ -111,7 +115,7 @@ FAIL	github.com/hgsgtk/go-snippets/testing-codes/sample	0.008s
 == 適切なエラーレポート
 ユニットテスト自体を維持するコストの発生について"費用対効果の高いユニットテストという考え方"にて説明しました。維持コストを最小限におさえるために意識するべき点のひとつとして、適切なエラーレポートという観点があります。ユニットテストが失敗した際に"なぜ失敗したのか"について、それを見るプログラマに対してわかりやすいレポートである必要があります。わかりやすいレポートにすることによって、ユニットテストの失敗に対する調査・解決にかかるコストを下げれます。
 
-では、適切なエラーレポートとはなんでしょうか。Goの公式FAQの"Why does Go not have assertions?"@<fn>{goFaqAssertions}にて説明がありますが、直接的かつ適切な内容とされています。
+では、適切なエラーレポートとはなんでしょうか。Goの公式FAQの"Why does Go not have assertions?"@<fn>{goFaqAssertions}では、直接的かつ適切な内容と説明されています。
 具体的には、"施行した内容"・"どのような入力を行ったか"・"実際の結果"・"期待される結果"の４つの内容が含まれていることが望ましいです。
 
 適切なエラーレポートを知るために、一度適切なエラーレポートができていないサンプルを見てましょう。@<list>{InStatusList}に対して、ユニットテストを書いてみます。
@@ -363,15 +367,16 @@ func TestGetMsg(t *testing.T) {
 }
 //}
 
-テーブル駆動テストでは、必要に応じた新たな表の項目を追加するのが簡単であり、判定ロジックの複製の不要です。そのため、テストコードに対する修正・追加コストの低いユニットテストを実現する方法になります。あわせて、テストコードを読む際にも、対象関数のテストパターンが表にかかれているので可読性の高いドキュメンテーションとしての価値も高いユニットテストとなります。さらに、判定ロジックの複製が不要な分、これまで説明してきた適切なエラーレポート・適切なエラーハンドリングに集中することができます。
+テーブル駆動テストでは、必要に応じた新たな表の項目を追加するのが簡単であり、判定ロジックの複製の不要です。そのため、テストコードに対する修正・追加コストの低いユニットテストを実現する方法になります。あわせて、テストコードを読む際にも、対象関数のテストパターンが表にかかれているので可読性の高いユニットテストとなります。さらに、判定ロジックの複製が不要な分、これまで説明してきた適切なエラーレポート・エラーハンドリングに集中することができます。
 
 === サブテスト
 
-テーブル駆動テストに加えて、サブテストを使うことができます。サブテストは@<code>{*testing.T.Run}@<fn>{trun}を使用することによって実現します。@<list>{TestFizzBuzzGetMsgTableDriven}をサブテストを使うように書き換えます。
+テーブル駆動テストとあわせてよく使用されるものとして、サブテスト@<fn>{subtest}があります。サブテストは@<code>{*testing.T.Run}@<fn>{trun}を使用することによって作ることができます。先程の@<list>{TestFizzBuzzGetMsgTableDriven}をサブテストを作るように書き換えてみましょう。
 
+//footnote[subtest][@<href>{https://blog.golang.org/subtests}]
 //footnote[trun][@<href>{https://golang.org/pkg/testing/#T.Run}]
 
-//list[TestFizzBuzzGetMsgSubTest][サブテスト][go]{
+//list[TestFizzBuzzGetMsgSubTest][サブテストを作る例][go]{
 func TestGetMsg(t *testing.T) {
 	tests := []struct {
 		desc string
@@ -409,7 +414,7 @@ func TestGetMsg(t *testing.T) {
 }
 //}
 
-@<list>{TestFizzBuzzGetMsgSubTest}を実行します。
+@<code>{*testing.T.Run}の第一引数で渡した文字列がサブテスト名になります。そのため@<list>{TestFizzBuzzGetMsgSubTest}では、テーブルに desc という項目を追加してそれぞれのテストケースに名前をつけるようにしました。このテストを実行してみましょう。
 
 //list[ExectuteTestFizzBuzzGetMsgSubTest][サブテストを実行する][go]{
 === RUN   TestGetMsg
@@ -425,19 +430,21 @@ func TestGetMsg(t *testing.T) {
 PASS
 //}
 
-サブテストを活用することは費用対効果の高いユニットテストの実現に有用です。まず、それぞれのテストケースにテストケース名を与えることができます。これは、そのテストコードを読むプログラマが意図を理解しやすい可読性の高いテストコードに繋がります。また、特定のサブテストのみを実行することができます。たとえば、@<code>{divisible_by_15}のみを実行したい場合は、@<code>{--run}オプションをtestコマンドにわたすことで実現できます。特定のサブテストのみを実行できることによりデバッグ時に必要最小限のユニットテスト実行で済むためデバッグコストの削減に繋がります。
+テスト実行結果にサブテスト名が表示されるようになりました。サブテストにすることで特定のサブテストのみを実行することができます。たとえば、@<code>{divisible_by_15}のみを実行したい場合は、@<code>{--run}オプションをtestコマンドにわたすことで実現できます。
 
 //list[ExectuteSpeficiedTestFizzBuzzGetMsgSubTest][特定のサブテストを実行する][]{
-% go test github.com/hgsgtk/go-snippets/testing-codes/fizzbuzz --run TestGetMsg/divisible_by_15 -v
+% go test fizzbuzz -run TestGetMsg/divisible_by_15 -v
 === RUN   TestGetMsg
 === RUN   TestGetMsg/divisible_by_15
 --- PASS: TestGetMsg (0.00s)
     --- PASS: TestGetMsg/divisible_by_15 (0.00s)
 PASS
-ok  	github.com/hgsgtk/go-snippets/testing-codes/fizzbuzz	0.008s
+ok  	fizzbuzz	0.008s
 //}
 
-さらに、@<code>{*T.Parallel}@<fn>{tparallel}を合わせて使うことで並行でのユニットテスト実行が可能になります。並行処理が可能になることでテストケース全体の実行時間を短縮することができます。
+サブテストを活用することで、それぞれのテストケースにテストケース名を与えることができることを紹介しました。これは、保守するために読むプログラマに対して意図を伝えやすいテストコードの作成に繋がります。また、特定のサブテストのみを実行できることによりデバッグ時に必要最小限のユニットテスト実行で済むためデバッグコストの削減に繋がります。
+
+さらに、@<code>{*testing.T.Parallel}@<fn>{tparallel}を合わせて使うことで並行でのユニットテスト実行が可能になります。並行処理が可能になることでテストケース全体の実行時間を短縮することができます。
 
 //footnote[tparallel][@<href>{https://golang.org/pkg/testing/#T.Parallel}]
 
