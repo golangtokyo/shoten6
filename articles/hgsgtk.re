@@ -17,7 +17,7 @@
 
 まず、Goのユニットテスト作成の基本をおさえましょう。Goでは、ユニットテストを行うためのコマンドとして、@<code>{go test}@<fn>{gotestcmd} というサブコマンドが用意されています。このコマンドは、@<code>{_test.go}のサフィックスが付いたファイルを対象にしてユニットテストを実行します。
 
-//footnote[gotestcmd][@<href>{https://golang.org/pkg/cmd/go/internal/test/}]
+//footnote[gotestcmd][@<href>{https://golang.org/pkg/cmd/go/#hdr-Test_packages}]
 
 //list[goTestExecution][go testによるユニットテスト実行][]{
 % go test fizzbuzz
