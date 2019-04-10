@@ -212,7 +212,7 @@ Goにおいて適切なエラーハンドリングを実現するための具体
 よって、処理の継続において致命的なエラーに対するハンドリングは@<code>{*testing.T.Fatal}/@<code>{*testing.T.Fatalf}で行い、そうではないエラーに対するハンドリングは、@<code>{*testing.T.Error}/@<code>{*testing.T.Errorf}で行います。
 ひとつ、@<code>{*testing.T.Fatalf}と@<code>{*testing.T.Errorf}を使い分ける例を見てましょう。
 
-//list[OkHandler][OKを返すHTTPハンドラー()][go]{
+//list[OkHandler][OKを返すHTTPハンドラーOkHandler()][go]{
 package sample
 
 import (
