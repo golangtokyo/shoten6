@@ -20,7 +20,7 @@
 //footnote[gotestcmd][@<href>{https://golang.org/pkg/cmd/go/#hdr-Test_packages}]
 
 //list[goTestExecution][go testによるユニットテスト実行][]{
-% go test fizzbuzz
+% go test ./fizzbuzz
 ok  	fizzbuzz	0.006s
 //}
 
@@ -46,7 +46,7 @@ func TestName(t *testing.T) {
 }
 //}
 
-テスト関数名は、 @<code>{Test} で始め、以降の接頭辞 @<code>{Name} は大文字で始める必要があります。また、引数定義には、@<code>{*testing.T}を設定します。
+テスト関数名は、 @<code>{Test} で始め、以降の接頭辞 @<code>{Name} は大文字で始める必要があります。また、引数定義には、@<code>{*testing.T}を設定します。また、パッケージ名は@<code>{sample_test}としています。これについては本章内の"外部テストパッケージ"にて詳細を説明します。
 
 例として、文字列"hello" を返却する@<code>{SayHello()}関数のユニットテストを見てみましょう。
 
@@ -81,7 +81,7 @@ func TestSayHello(t *testing.T) {
 作成したユニットテストを先程紹介した @<code>{go test} で実行すると、ユニットテストが通ることが確認できます。（詳細結果を表示するため、@<code>{-v}オプションを設定して実行します。）
 
 //list[sampleTestExecution][TestSayHello()が成功する][]{
-% go test -v sample
+% go test -v ./sample
 === RUN   TestSayHello
 --- PASS: TestSayHello (0.00s)
 PASS
@@ -91,7 +91,7 @@ ok  	sample	0.007s
 このユニットテストが失敗する場合は@<list>{sampleTestExecutionFailed}のような出力結果が得られます。
 
 //list[sampleTestExecutionFailed][TestSayHello()が失敗する][]{
-% go test -v sample
+% go test -v ./sample
 --- FAIL: TestSayHello (0.00s)
   sample_test.go:16: SayHello() = hellox, want hello
 FAIL
@@ -533,7 +533,7 @@ PASS
 テスト実行結果にサブテスト名が表示されるようになりました。サブテストにすることで特定のサブテストのみを実行することができます。たとえば、@<code>{divisible_by_15}のみを実行したい場合は、@<code>{-run}オプションを@<code>{test}コマンドにわたすことで実現できます。
 
 //list[ExectuteSpeficiedTestFizzBuzzGetMsgSubTest][特定のサブテストを実行する][]{
-% go test fizzbuzz -run TestGetMsg/divisible_by_15 -v
+% go test ./fizzbuzz -run TestGetMsg/divisible_by_15 -v
 === RUN   TestGetMsg
 === RUN   TestGetMsg/divisible_by_15
 --- PASS: TestGetMsg (0.00s)
